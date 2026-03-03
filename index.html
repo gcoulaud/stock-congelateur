@@ -1,73 +1,48 @@
-<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stock Congelateur</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <main class="container">
-      <header>
-        <h1>Stock Congelateur</h1>
-        <p>Suivi rapide des produits et quantites restantes.</p>
-      </header>
-
-      <section class="card">
-        <h2>Ajouter un produit</h2>
-        <form id="product-form" class="form-row">
-          <select id="freezer-select" required>
-            <option value="freezer1">Congelateur 1</option>
-            <option value="freezer2">Congelateur 2</option>
-          </select>
-          <input
-            id="product-name"
-            type="text"
-            placeholder="Ex: Haricots verts"
-            required
-            maxlength="80"
-          />
-          <input id="product-qty" type="number" min="1" step="1" value="1" required />
-          <button type="submit">Ajouter</button>
-        </form>
-      </section>
-
-      <section class="card">
-        <h2>Produits en stock</h2>
-        <div class="freezer-grid">
-          <article class="freezer-block">
-            <div class="list-header">
-              <h3>Congelateur 1</h3>
-              <button class="danger clear-freezer" data-freezer="freezer1" type="button">Vider</button>
-            </div>
-            <ul id="product-list-freezer1" class="product-list"></ul>
-            <p id="empty-state-freezer1" class="empty-state">Aucun produit dans ce congelateur.</p>
-          </article>
-
-          <article class="freezer-block">
-            <div class="list-header">
-              <h3>Congelateur 2</h3>
-              <button class="danger clear-freezer" data-freezer="freezer2" type="button">Vider</button>
-            </div>
-            <ul id="product-list-freezer2" class="product-list"></ul>
-            <p id="empty-state-freezer2" class="empty-state">Aucun produit dans ce congelateur.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>QR code d'acces</h2>
-        <p>Renseigne l'URL publique de l'app puis scanne le QR code.</p>
-        <div class="form-row">
-          <input id="app-url" type="url" placeholder="https://mon-app.exemple.com" />
-          <button id="generate-qr" type="button">Generer QR</button>
-        </div>
-        <div class="qr-wrapper">
-          <img id="qr-image" alt="QR code" />
-        </div>
-      </section>
-    </main>
-
-    <script src="app.js"></script>
-  </body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.5">
+  <style type="text/css">
+    p.p2 {margin: 0.0px 0.0px 12.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
+    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px 'Helvetica Neue'; color: #000000; color: rgba(0, 0, 0, 0.85); -webkit-text-stroke: rgba(0, 0, 0, 0.85); background-color: #ffffff}
+    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px 'Helvetica Neue'; color: #000000; color: rgba(0, 0, 0, 0.85); -webkit-text-stroke: rgba(0, 0, 0, 0.85)}
+    p.p8 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
+    li.li7 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times}
+    span.s1 {font-kerning: none}
+    span.s2 {font: 11.0px Times; font-kerning: none}
+    span.s3 {font-kerning: none; background-color: #ffffff}
+    span.s4 {font: 12.0px Times; font-kerning: none; color: #000000; -webkit-text-stroke: 0px #000000}
+    span.s5 {font-kerning: none; background-color: #b3b3b3}
+    ul.ul1 {list-style-type: disc}
+  </style>
+</head>
+<body>
+<h1 style="margin: 0.0px 0.0px 16.1px 0.0px; font: 24.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>Stock Congelateur</b></span></h1>
+<p class="p2"><span class="s1">Suivi rapide des produits et quantites restantes.</span></p>
+<h2 style="margin: 0.0px 0.0px 14.9px 0.0px; font: 18.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>Ajouter un produit</b><b></b></span></h2>
+<p class="p4"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s2">Cuisine</span></p>
+<p class="p4"><span class="s1"><span class="Apple-converted-space">            </span></span><span class="s2">Célier</span></p>
+<p class="p5"><span class="s3"><span class="Apple-converted-space">          </span></span><span class="s4"> </span><span class="s5">Ajouter</span></p>
+<h2 style="margin: 0.0px 0.0px 14.9px 0.0px; font: 18.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>Produits en stock</b></span></h2>
+<h3 style="margin: 0.0px 0.0px 14.0px 0.0px; font: 14.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>Cuisine</b></span></h3>
+<p class="p5"><span class="s5">Vider</span></p>
+<ul class="ul1">
+  <li class="li7"></li>
+</ul>
+<p class="p2"><span class="s1">Aucun produit dans ce congelateur.</span></p>
+<h3 style="margin: 0.0px 0.0px 14.0px 0.0px; font: 14.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>Célier</b></span></h3>
+<p class="p5"><span class="s5">Vider</span></p>
+<ul class="ul1">
+  <li class="li7"></li>
+</ul>
+<p class="p2"><span class="s1">Aucun produit dans ce congelateur.</span></p>
+<h2 style="margin: 0.0px 0.0px 14.9px 0.0px; font: 18.0px Times; -webkit-text-stroke: #000000"><span class="s1"><b>QR code d'acces</b></span></h2>
+<p class="p2"><span class="s1">Renseigne l'URL publique de l'app puis scanne le QR code.</span></p>
+<p class="p5"><span class="s5">Generer QR</span></p>
+<p class="p8"><span class="s1"></span><br></p>
+</body>
 </html>
