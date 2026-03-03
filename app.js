@@ -221,16 +221,15 @@ function getItemCategory(item) {
   return detectCategory(item.name);
 }
 
-function buildCategorySelectHtml(item, freezerId, index) {
-  const selected = isValidItemCategory(item.category) ? item.category : "auto";
-  const options = [
-    '<option value="auto">Auto</option>',
-    ...EDITABLE_CATEGORIES.map(
-      (category) => `<option value="${category.id}" ${selected === category.id ? "selected" : ""}>${category.label}</option>`
-    ),
-  ].join("");
+function getCategoryLabel(categoryId) {
+  if (categoryId === "auto") return "Auto";
+  const found = EDITABLE_CATEGORIES.find((category) => category.id === categoryId);
+  return found ? found.label : "Auto";
+}
 
-  return `<select class="category-select" data-action="set-category" data-freezer="${freezerId}" data-index="${index}" aria-label="Categorie produit">${options}</select>`;
+function buildCategoryControlHtml(item, freezerId, index) {
+  const current = isValidItemCategory(item.category) ? item.category : "auto";
+  return `<button class="category-select" data-action="cycle-category" data-freezer="${freezerId}" data-index="${index}" type="button">${getCategoryLabel(current)}</button>`;
 }
 
 function collectSuggestions() {
@@ -347,7 +346,7 @@ function renderFreezer(freezerId) {
       <li class="product-item">
         <div>
           <span class="item-name">${escapeHtml(item.name)}</span>
-          <div class="item-meta">${buildCategorySelectHtml(item, freezerId, realIndex)}</div>
+          <div class="item-meta">${buildCategoryControlHtml(item, freezerId, realIndex)}</div>
         </div>
         <div class="item-controls">
           <button class="ctrl-btn" data-action="decrease" data-freezer="${freezerId}" data-index="${realIndex}" type="button">-</button>
@@ -398,6 +397,17 @@ function setItemCategory(freezerId, index, categoryId) {
   items[index].category = categoryId;
   saveItems();
   renderFreezer(freezerId);
+}
+
+
+function nextItemCategory(current) {
+  const ordered = ["auto", ...EDITABLE_CATEGORIES.map((category) => category.id)];
+  const currentIndex = ordered.indexOf(current);
+  if (currentIndex === -1 || currentIndex === ordered.length - 1) {
+    return ordered[0];
+  }
+
+  return ordered[currentIndex + 1];
 }
 
 function updateItem(freezerId, action, index) {
@@ -506,21 +516,18 @@ FREEZERS.forEach((freezerId) => {
     const targetFreezer = target.dataset.freezer;
 
     if (!action || Number.isNaN(index) || !FREEZERS.includes(targetFreezer)) return;
+
+    if (action === "cycle-category") {
+      const item = freezerItems[targetFreezer][index];
+      if (!item) return;
+      const current = isValidItemCategory(item.category) ? item.category : "auto";
+      setItemCategory(targetFreezer, index, nextItemCategory(current));
+      return;
+    }
+
     updateItem(targetFreezer, action, index);
   });
 
-  listEl.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLSelectElement)) return;
-    if (target.dataset.action !== "set-category") return;
-
-    const targetFreezer = target.dataset.freezer;
-    const index = Number(target.dataset.index);
-    const categoryId = target.value;
-
-    if (!targetFreezer || Number.isNaN(index)) return;
-    setItemCategory(targetFreezer, index, categoryId);
-  });
 
   const categoryTabs = categoryTabsByFreezer[freezerId];
   if (!categoryTabs) return;

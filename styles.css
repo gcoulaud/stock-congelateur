@@ -225,6 +225,7 @@ button.danger {
   font-size: 0.8rem;
   background: #fff;
   color: var(--text);
+  cursor: pointer;
 }
 
 .item-controls {
