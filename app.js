@@ -1,5 +1,6 @@
 const STORAGE_KEY = "freezer-stock-items-v1";
 const URL_KEY = "freezer-stock-app-url-v1";
+const ACTIVE_FREEZER_KEY = "freezer-stock-active-tab-v1";
 const FREEZERS = ["freezer1", "freezer2"];
 const VERSION_ENDPOINT = "version.json";
 const VERSION_CHECK_INTERVAL_MS = 60000;
@@ -55,10 +56,11 @@ const BASE_SUGGESTIONS = [
 ];
 
 const form = document.getElementById("product-form");
-const freezerSelect = document.getElementById("freezer-select");
 const nameInput = document.getElementById("product-name");
 const suggestionsEl = document.getElementById("product-suggestions");
 const qtyInput = document.getElementById("product-qty");
+const tabButtons = document.querySelectorAll(".tab-btn");
+const freezerPanels = document.querySelectorAll(".freezer-panel");
 const clearButtons = document.querySelectorAll(".clear-freezer");
 const appUrlInput = document.getElementById("app-url");
 const generateQrBtn = document.getElementById("generate-qr");
@@ -75,6 +77,7 @@ const emptyStateByFreezer = {
 };
 
 let freezerItems = loadItems();
+let activeFreezer = loadActiveFreezer();
 
 function loadItems() {
   const empty = { freezer1: [], freezer2: [] };
@@ -99,6 +102,11 @@ function loadItems() {
   } catch {
     return empty;
   }
+}
+
+function loadActiveFreezer() {
+  const saved = localStorage.getItem(ACTIVE_FREEZER_KEY);
+  return FREEZERS.includes(saved) ? saved : "freezer1";
 }
 
 function sanitizeItems(items) {
@@ -190,6 +198,23 @@ function renderAll() {
   FREEZERS.forEach(renderFreezer);
 }
 
+function setActiveFreezer(freezerId) {
+  if (!FREEZERS.includes(freezerId)) return;
+
+  activeFreezer = freezerId;
+  localStorage.setItem(ACTIVE_FREEZER_KEY, freezerId);
+
+  tabButtons.forEach((button) => {
+    const isActive = button.dataset.freezer === freezerId;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+
+  freezerPanels.forEach((panel) => {
+    panel.hidden = panel.dataset.freezer !== freezerId;
+  });
+}
+
 function updateItem(freezerId, action, index) {
   const items = freezerItems[freezerId];
   if (!items) return;
@@ -217,7 +242,7 @@ function updateItem(freezerId, action, index) {
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  const freezerId = freezerSelect.value;
+  const freezerId = activeFreezer;
   const name = nameInput.value.trim();
   const qty = Number(qtyInput.value);
 
@@ -248,6 +273,13 @@ nameInput.addEventListener("input", () => {
 
 nameInput.addEventListener("focus", () => {
   renderSuggestions(nameInput.value);
+});
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const freezerId = button.dataset.freezer;
+    setActiveFreezer(freezerId);
+  });
 });
 
 FREEZERS.forEach((freezerId) => {
@@ -353,5 +385,6 @@ generateQrBtn.addEventListener("click", () => {
   setQrCode(initialUrl);
   renderAll();
   renderSuggestions("");
+  setActiveFreezer(activeFreezer);
   startAutoRefreshWatcher();
 })();

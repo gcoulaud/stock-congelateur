@@ -15,11 +15,8 @@
 
       <section class="card">
         <h2>Ajouter un produit</h2>
+        <p class="hint">Le produit sera ajoute dans l'onglet actif.</p>
         <form id="product-form" class="form-row">
-          <select id="freezer-select" required>
-            <option value="freezer1">Cuisine</option>
-            <option value="freezer2">Celier</option>
-          </select>
           <input
             id="product-name"
             type="text"
@@ -37,25 +34,29 @@
 
       <section class="card">
         <h2>Produits en stock</h2>
-        <div class="freezer-grid">
-          <article class="freezer-block">
-            <div class="list-header">
-              <h3>Cuisine</h3>
-              <button class="danger clear-freezer" data-freezer="freezer1" type="button">Vider</button>
-            </div>
-            <ul id="product-list-freezer1" class="product-list"></ul>
-            <p id="empty-state-freezer1" class="empty-state">Aucun produit dans ce congelateur.</p>
-          </article>
 
-          <article class="freezer-block">
-            <div class="list-header">
-              <h3>Celier</h3>
-              <button class="danger clear-freezer" data-freezer="freezer2" type="button">Vider</button>
-            </div>
-            <ul id="product-list-freezer2" class="product-list"></ul>
-            <p id="empty-state-freezer2" class="empty-state">Aucun produit dans ce congelateur.</p>
-          </article>
+        <div class="tabs" role="tablist" aria-label="Congelateurs">
+          <button class="tab-btn is-active" data-freezer="freezer1" role="tab" aria-selected="true" type="button">Cuisine</button>
+          <button class="tab-btn" data-freezer="freezer2" role="tab" aria-selected="false" type="button">Celier</button>
         </div>
+
+        <article class="freezer-panel" data-freezer="freezer1">
+          <div class="list-header">
+            <h3>Cuisine</h3>
+            <button class="danger clear-freezer" data-freezer="freezer1" type="button">Vider</button>
+          </div>
+          <ul id="product-list-freezer1" class="product-list"></ul>
+          <p id="empty-state-freezer1" class="empty-state">Aucun produit dans ce congelateur.</p>
+        </article>
+
+        <article class="freezer-panel" data-freezer="freezer2" hidden>
+          <div class="list-header">
+            <h3>Celier</h3>
+            <button class="danger clear-freezer" data-freezer="freezer2" type="button">Vider</button>
+          </div>
+          <ul id="product-list-freezer2" class="product-list"></ul>
+          <p id="empty-state-freezer2" class="empty-state">Aucun produit dans ce congelateur.</p>
+        </article>
       </section>
 
       <section class="card">

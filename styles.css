@@ -54,6 +54,12 @@ h3 {
   font-size: 1rem;
 }
 
+.hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .form-row {
   display: flex;
   gap: 8px;
@@ -61,7 +67,6 @@ h3 {
 }
 
 input,
-select,
 button {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -69,8 +74,7 @@ button {
   font-size: 0.95rem;
 }
 
-input,
-select {
+input {
   flex: 1 1 220px;
 }
 
@@ -90,24 +94,36 @@ button.danger {
   border-color: var(--danger);
 }
 
+.tabs {
+  display: inline-flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab-btn {
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.tab-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.freezer-panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fbfdfc;
+}
+
 .list-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-}
-
-.freezer-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.freezer-block {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px;
-  background: #fbfdfc;
 }
 
 .product-list {
@@ -174,10 +190,6 @@ button.danger {
 }
 
 @media (max-width: 640px) {
-  .freezer-grid {
-    grid-template-columns: 1fr;
-  }
-
   .product-item {
     grid-template-columns: 1fr;
   }
