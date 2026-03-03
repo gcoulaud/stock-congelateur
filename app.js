@@ -1,10 +1,23 @@
 const STORAGE_KEY = "freezer-stock-items-v1";
 const URL_KEY = "freezer-stock-app-url-v1";
 const FREEZERS = ["freezer1", "freezer2"];
+const BASE_SUGGESTIONS = [
+  "Poulet",
+  "Boeuf",
+  "Poisson",
+  "Haricots verts",
+  "Petits pois",
+  "Frites",
+  "Pizza",
+  "Soupe",
+  "Pain",
+  "Glace",
+];
 
 const form = document.getElementById("product-form");
 const freezerSelect = document.getElementById("freezer-select");
 const nameInput = document.getElementById("product-name");
+const suggestionsEl = document.getElementById("product-suggestions");
 const qtyInput = document.getElementById("product-qty");
 const clearButtons = document.querySelectorAll(".clear-freezer");
 const appUrlInput = document.getElementById("app-url");
@@ -68,6 +81,40 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+function normalizeText(value) {
+  return value.trim().toLowerCase();
+}
+
+function collectSuggestions() {
+  const known = new Map();
+
+  BASE_SUGGESTIONS.forEach((name) => {
+    const key = normalizeText(name);
+    if (key) known.set(key, name);
+  });
+
+  FREEZERS.forEach((freezerId) => {
+    freezerItems[freezerId].forEach((item) => {
+      const label = item.name.trim();
+      const key = normalizeText(label);
+      if (key && !known.has(key)) {
+        known.set(key, label);
+      }
+    });
+  });
+
+  return [...known.values()].sort((a, b) => a.localeCompare(b, "fr"));
+}
+
+function renderSuggestions(filterText = "") {
+  if (!suggestionsEl) return;
+
+  const filter = normalizeText(filterText);
+  const options = collectSuggestions().filter((name) => normalizeText(name).includes(filter)).slice(0, 12);
+
+  suggestionsEl.innerHTML = options.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
+}
+
 function renderFreezer(freezerId) {
   const listEl = listByFreezer[freezerId];
   const emptyStateEl = emptyStateByFreezer[freezerId];
@@ -124,6 +171,7 @@ function updateItem(freezerId, action, index) {
 
   saveItems();
   renderFreezer(freezerId);
+  renderSuggestions(nameInput.value);
 }
 
 form.addEventListener("submit", (event) => {
@@ -147,10 +195,19 @@ form.addEventListener("submit", (event) => {
 
   saveItems();
   renderFreezer(freezerId);
+  renderSuggestions("");
 
   nameInput.value = "";
   qtyInput.value = "1";
   nameInput.focus();
+});
+
+nameInput.addEventListener("input", () => {
+  renderSuggestions(nameInput.value);
+});
+
+nameInput.addEventListener("focus", () => {
+  renderSuggestions(nameInput.value);
 });
 
 FREEZERS.forEach((freezerId) => {
@@ -178,6 +235,7 @@ clearButtons.forEach((button) => {
     freezerItems[freezerId] = [];
     saveItems();
     renderFreezer(freezerId);
+    renderSuggestions(nameInput.value);
   });
 });
 
@@ -219,4 +277,5 @@ generateQrBtn.addEventListener("click", () => {
   appUrlInput.value = initialUrl;
   setQrCode(initialUrl);
   renderAll();
+  renderSuggestions("");
 })();

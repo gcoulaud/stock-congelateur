@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="fr">
   <head>
@@ -19,15 +18,18 @@
         <form id="product-form" class="form-row">
           <select id="freezer-select" required>
             <option value="freezer1">Cuisine</option>
-            <option value="freezer2">Célier</option>
+            <option value="freezer2">Celier</option>
           </select>
           <input
             id="product-name"
             type="text"
             placeholder="Ex: Haricots verts"
+            list="product-suggestions"
             required
             maxlength="80"
+            autocomplete="off"
           />
+          <datalist id="product-suggestions"></datalist>
           <input id="product-qty" type="number" min="1" step="1" value="1" required />
           <button type="submit">Ajouter</button>
         </form>
@@ -47,7 +49,7 @@
 
           <article class="freezer-block">
             <div class="list-header">
-              <h3>Célier</h3>
+              <h3>Celier</h3>
               <button class="danger clear-freezer" data-freezer="freezer2" type="button">Vider</button>
             </div>
             <ul id="product-list-freezer2" class="product-list"></ul>
@@ -71,5 +73,4 @@
 
     <script src="app.js"></script>
   </body>
->>>>>>> cb8b0f4ead637be30bfb14539cd8106a71f2ad03
 </html>
