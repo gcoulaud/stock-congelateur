@@ -88,7 +88,6 @@ function loadItems() {
 
     const parsed = JSON.parse(raw);
 
-    // Migration from old format: one array => freezer1
     if (Array.isArray(parsed)) {
       return { freezer1: sanitizeItems(parsed), freezer2: [] };
     }
@@ -154,13 +153,28 @@ function collectSuggestions() {
   return [...known.values()].sort((a, b) => a.localeCompare(b, "fr"));
 }
 
+function hideSuggestions() {
+  suggestionsEl.hidden = true;
+  suggestionsEl.innerHTML = "";
+}
+
 function renderSuggestions(filterText = "") {
   if (!suggestionsEl) return;
 
   const filter = normalizeText(filterText);
-  const options = collectSuggestions().filter((name) => normalizeText(name).includes(filter)).slice(0, 12);
+  const options = collectSuggestions()
+    .filter((name) => normalizeText(name).includes(filter))
+    .slice(0, 10);
 
-  suggestionsEl.innerHTML = options.map((name) => `<option value="${escapeHtml(name)}"></option>`).join("");
+  if (options.length === 0) {
+    hideSuggestions();
+    return;
+  }
+
+  suggestionsEl.innerHTML = options
+    .map((name) => `<li><button class="suggestion-btn" type="button" data-value="${escapeHtml(name)}">${escapeHtml(name)}</button></li>`)
+    .join("");
+  suggestionsEl.hidden = false;
 }
 
 function renderFreezer(freezerId) {
@@ -260,7 +274,7 @@ form.addEventListener("submit", (event) => {
 
   saveItems();
   renderFreezer(freezerId);
-  renderSuggestions("");
+  hideSuggestions();
 
   nameInput.value = "";
   qtyInput.value = "1";
@@ -273,6 +287,32 @@ nameInput.addEventListener("input", () => {
 
 nameInput.addEventListener("focus", () => {
   renderSuggestions(nameInput.value);
+});
+
+nameInput.addEventListener("blur", () => {
+  setTimeout(hideSuggestions, 120);
+});
+
+nameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    hideSuggestions();
+  }
+});
+
+suggestionsEl.addEventListener("mousedown", (event) => {
+  event.preventDefault();
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const btn = target.closest(".suggestion-btn");
+  if (!(btn instanceof HTMLElement)) return;
+
+  const value = btn.dataset.value;
+  if (!value) return;
+
+  nameInput.value = value;
+  hideSuggestions();
+  nameInput.focus();
 });
 
 tabButtons.forEach((button) => {

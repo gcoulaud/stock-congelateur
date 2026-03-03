@@ -94,6 +94,47 @@ button.danger {
   border-color: var(--danger);
 }
 
+.autocomplete-box {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.autocomplete-box input {
+  width: 100%;
+}
+
+.suggestions-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(24, 43, 34, 0.14);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.suggestion-btn {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.suggestion-btn:hover {
+  background: #eef5f1;
+}
+
 .tabs {
   display: inline-flex;
   gap: 8px;

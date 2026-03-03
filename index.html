@@ -16,17 +16,22 @@
       <section class="card">
         <h2>Ajouter un produit</h2>
         <p class="hint">Le produit sera ajoute dans l'onglet actif.</p>
-        <form id="product-form" class="form-row">
-          <input
-            id="product-name"
-            type="text"
-            placeholder="Ex: Haricots verts"
-            list="product-suggestions"
-            required
-            maxlength="80"
-            autocomplete="off"
-          />
-          <datalist id="product-suggestions"></datalist>
+        <form id="product-form" class="form-row" autocomplete="off">
+          <div class="autocomplete-box">
+            <input
+              id="product-name"
+              name="product_input"
+              type="text"
+              placeholder="Ex: Haricots verts"
+              required
+              maxlength="80"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+            />
+            <ul id="product-suggestions" class="suggestions-list" hidden></ul>
+          </div>
           <input id="product-qty" type="number" min="1" step="1" value="1" required />
           <button type="submit">Ajouter</button>
         </form>
