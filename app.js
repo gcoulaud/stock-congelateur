@@ -229,7 +229,39 @@ function getCategoryLabel(categoryId) {
 
 function buildCategoryControlHtml(item, freezerId, index) {
   const current = isValidItemCategory(item.category) ? item.category : "auto";
-  return `<button class="category-select" data-action="cycle-category" data-freezer="${freezerId}" data-index="${index}" type="button">${getCategoryLabel(current)}</button>`;
+  const options = [
+    { id: "auto", label: "Auto" },
+    ...EDITABLE_CATEGORIES.map((category) => ({ id: category.id, label: category.label })),
+  ];
+
+  const optionsHtml = options
+    .map((option) => {
+      const isActive = option.id === current;
+      return `<button class="category-option-btn ${isActive ? "is-active" : ""}" data-action="set-category" data-freezer="${freezerId}" data-index="${index}" data-category="${option.id}" type="button">${option.label}</button>`;
+    })
+    .join("");
+
+  return `
+    <div class="category-picker">
+      <button class="category-select" data-action="toggle-category-menu" data-freezer="${freezerId}" data-index="${index}" type="button">${getCategoryLabel(current)}</button>
+      <div class="category-menu" data-menu="${freezerId}-${index}" hidden>${optionsHtml}</div>
+    </div>
+  `;
+}
+
+function closeAllCategoryMenus() {
+  document.querySelectorAll(".category-menu").forEach((menu) => {
+    menu.hidden = true;
+  });
+}
+
+function toggleCategoryMenu(freezerId, index) {
+  const menu = document.querySelector(`.category-menu[data-menu="${freezerId}-${index}"]`);
+  if (!(menu instanceof HTMLElement)) return;
+
+  const shouldOpen = menu.hidden;
+  closeAllCategoryMenus();
+  menu.hidden = !shouldOpen;
 }
 
 function collectSuggestions() {
@@ -400,15 +432,6 @@ function setItemCategory(freezerId, index, categoryId) {
 }
 
 
-function nextItemCategory(current) {
-  const ordered = ["auto", ...EDITABLE_CATEGORIES.map((category) => category.id)];
-  const currentIndex = ordered.indexOf(current);
-  if (currentIndex === -1 || currentIndex === ordered.length - 1) {
-    return ordered[0];
-  }
-
-  return ordered[currentIndex + 1];
-}
 
 function updateItem(freezerId, action, index) {
   const items = freezerItems[freezerId];
@@ -431,6 +454,7 @@ function updateItem(freezerId, action, index) {
 
   saveItems();
   renderFreezer(freezerId);
+  closeAllCategoryMenus();
   renderSuggestions(nameInput.value);
 }
 
@@ -508,20 +532,29 @@ FREEZERS.forEach((freezerId) => {
   if (!listEl) return;
 
   listEl.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
+    const rawTarget = event.target;
+    const target = rawTarget instanceof Element ? rawTarget : rawTarget && rawTarget.parentElement;
+    if (!target) return;
 
-    const action = target.dataset.action;
-    const index = Number(target.dataset.index);
-    const targetFreezer = target.dataset.freezer;
+    const actionEl = target.closest("[data-action][data-freezer][data-index]");
+    if (!(actionEl instanceof HTMLElement)) return;
+
+    const action = actionEl.dataset.action;
+    const index = Number(actionEl.dataset.index);
+    const targetFreezer = actionEl.dataset.freezer;
 
     if (!action || Number.isNaN(index) || !FREEZERS.includes(targetFreezer)) return;
 
-    if (action === "cycle-category") {
-      const item = freezerItems[targetFreezer][index];
-      if (!item) return;
-      const current = isValidItemCategory(item.category) ? item.category : "auto";
-      setItemCategory(targetFreezer, index, nextItemCategory(current));
+    if (action === "toggle-category-menu") {
+      toggleCategoryMenu(targetFreezer, index);
+      return;
+    }
+
+    if (action === "set-category") {
+      const categoryId = actionEl.dataset.category;
+      if (!categoryId) return;
+      setItemCategory(targetFreezer, index, categoryId);
+      closeAllCategoryMenus();
       return;
     }
 
@@ -619,6 +652,13 @@ function startAutoRefreshWatcher() {
   setInterval(checkForUpdates, VERSION_CHECK_INTERVAL_MS);
 }
 
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (target.closest(".category-picker")) return;
+  closeAllCategoryMenus();
+});
+
 generateQrBtn.addEventListener("click", () => {
   const normalized = normalizeUrl(appUrlInput.value || window.location.href);
   if (!normalized) return;
@@ -636,5 +676,6 @@ generateQrBtn.addEventListener("click", () => {
   renderAll();
   hideSuggestions();
   setActiveFreezer(activeFreezer);
+  closeAllCategoryMenus();
   startAutoRefreshWatcher();
 })();
