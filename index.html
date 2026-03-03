@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stock Congelateur</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Stock Congelateur</h1>
+        <p>Suivi rapide des produits et quantites restantes.</p>
+      </header>
+
+      <section class="card">
+        <h2>Ajouter un produit</h2>
+        <form id="product-form" class="form-row">
+          <select id="freezer-select" required>
+            <option value="freezer1">Congelateur 1</option>
+            <option value="freezer2">Congelateur 2</option>
+          </select>
+          <input
+            id="product-name"
+            type="text"
+            placeholder="Ex: Haricots verts"
+            required
+            maxlength="80"
+          />
+          <input id="product-qty" type="number" min="1" step="1" value="1" required />
+          <button type="submit">Ajouter</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Produits en stock</h2>
+        <div class="freezer-grid">
+          <article class="freezer-block">
+            <div class="list-header">
+              <h3>Congelateur 1</h3>
+              <button class="danger clear-freezer" data-freezer="freezer1" type="button">Vider</button>
+            </div>
+            <ul id="product-list-freezer1" class="product-list"></ul>
+            <p id="empty-state-freezer1" class="empty-state">Aucun produit dans ce congelateur.</p>
+          </article>
+
+          <article class="freezer-block">
+            <div class="list-header">
+              <h3>Congelateur 2</h3>
+              <button class="danger clear-freezer" data-freezer="freezer2" type="button">Vider</button>
+            </div>
+            <ul id="product-list-freezer2" class="product-list"></ul>
+            <p id="empty-state-freezer2" class="empty-state">Aucun produit dans ce congelateur.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>QR code d'acces</h2>
+        <p>Renseigne l'URL publique de l'app puis scanne le QR code.</p>
+        <div class="form-row">
+          <input id="app-url" type="url" placeholder="https://mon-app.exemple.com" />
+          <button id="generate-qr" type="button">Generer QR</button>
+        </div>
+        <div class="qr-wrapper">
+          <img id="qr-image" alt="QR code" />
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
