@@ -4,10 +4,11 @@ const FREEZERS = ["freezer1", "freezer2"];
 const BASE_SUGGESTIONS = [
   "Poulet entier",
   "Coustilles",
-  "Boeuf à bourguigons",
+  "Boeuf à bourguigons","Steack haché","Côte de potrc",
+  "Talon Jambon","Saucisse de Montbéliard","Viande bovine",",Jambon",
   "Maquereau",
   "Truite",
-  "Saumon",
+  "Saumon","Pavé de saumon","Crevettes","Lieu noir",
   "Saumon fumé",
   "Blanc de poulet",
   "Saucices de Toulouse",
@@ -25,6 +26,8 @@ const BASE_SUGGESTIONS = [
   "Soupe",
   "Pain",
   "Glace",
+  "Saint Nectaire",
+  "Epoisse","Emmental","Framboise","Mures","Fraises","Lardons",
 ];
 
 const form = document.getElementById("product-form");
