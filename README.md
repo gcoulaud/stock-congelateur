@@ -50,3 +50,11 @@ Dans l'app:
 1. Mets ton URL publique cloud
 2. Clique sur `Generer QR`
 3. Scanne le code avec ton telephone pour ouvrir l'app
+
+
+## Mise a jour auto du navigateur
+
+L'application verifie `version.json` toutes les 60 secondes.
+Si la version change, la page se recharge automatiquement.
+
+A chaque modification publiee, pense a mettre a jour la valeur `version` dans `version.json`.

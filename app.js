@@ -1,7 +1,18 @@
 const STORAGE_KEY = "freezer-stock-items-v1";
 const URL_KEY = "freezer-stock-app-url-v1";
 const FREEZERS = ["freezer1", "freezer2"];
+const VERSION_ENDPOINT = "version.json";
+const VERSION_CHECK_INTERVAL_MS = 60000;
 const BASE_SUGGESTIONS = [
+  "Courgette farcies",
+  "Gateau de courgettes",
+  "Galettes des rois",
+  "Fumet de legumes",
+  "Fumet langoustine",
+  "Fumet poisson",
+  "Sauce poisson",
+  "Poulpe",
+  "Petits filets de sole",
   "Poulet entier",
   "Coustilles",
   "Boeuf bourguignon",
@@ -291,6 +302,41 @@ function setQrCode(url) {
   qrImage.style.display = "block";
 }
 
+let currentAppVersion = "";
+
+async function fetchRemoteVersion() {
+  try {
+    const response = await fetch(`${VERSION_ENDPOINT}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return "";
+
+    const payload = await response.json();
+    if (!payload || typeof payload.version !== "string") return "";
+
+    return payload.version.trim();
+  } catch {
+    return "";
+  }
+}
+
+async function checkForUpdates() {
+  const remoteVersion = await fetchRemoteVersion();
+  if (!remoteVersion) return;
+
+  if (!currentAppVersion) {
+    currentAppVersion = remoteVersion;
+    return;
+  }
+
+  if (remoteVersion !== currentAppVersion) {
+    window.location.reload();
+  }
+}
+
+function startAutoRefreshWatcher() {
+  checkForUpdates();
+  setInterval(checkForUpdates, VERSION_CHECK_INTERVAL_MS);
+}
+
 generateQrBtn.addEventListener("click", () => {
   const normalized = normalizeUrl(appUrlInput.value || window.location.href);
   if (!normalized) return;
@@ -307,4 +353,5 @@ generateQrBtn.addEventListener("click", () => {
   setQrCode(initialUrl);
   renderAll();
   renderSuggestions("");
+  startAutoRefreshWatcher();
 })();
