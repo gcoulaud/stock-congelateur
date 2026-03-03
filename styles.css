@@ -160,6 +160,29 @@ button.danger {
   background: #fbfdfc;
 }
 
+.category-tabs {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.category-tab-btn {
+  white-space: nowrap;
+  background: #fff;
+  color: var(--text);
+  border-color: var(--border);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.category-tab-btn.is-active {
+  background: #ecf5ef;
+  color: #184a32;
+  border-color: #b9d8c6;
+}
+
 .list-header {
   display: flex;
   align-items: center;
@@ -169,7 +192,7 @@ button.danger {
 
 .product-list {
   list-style: none;
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
 }
 
@@ -186,6 +209,22 @@ button.danger {
 
 .item-name {
   font-weight: 600;
+}
+
+
+.item-meta {
+  margin-top: 6px;
+}
+
+.category-select {
+  min-width: 130px;
+  max-width: 180px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  background: #fff;
+  color: var(--text);
 }
 
 .item-controls {

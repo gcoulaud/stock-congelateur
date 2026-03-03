@@ -1,9 +1,33 @@
 const STORAGE_KEY = "freezer-stock-items-v1";
 const URL_KEY = "freezer-stock-app-url-v1";
 const ACTIVE_FREEZER_KEY = "freezer-stock-active-tab-v1";
+const ACTIVE_CATEGORY_KEY = "freezer-stock-active-category-v1";
 const FREEZERS = ["freezer1", "freezer2"];
 const VERSION_ENDPOINT = "version.json";
 const VERSION_CHECK_INTERVAL_MS = 60000;
+
+const CATEGORIES = [
+  { id: "all", label: "Tout" },
+  { id: "viande", label: "Viandes" },
+  { id: "poisson", label: "Poissons" },
+  { id: "legume", label: "Legumes" },
+  { id: "plat", label: "Plats" },
+  { id: "produit_laitier", label: "Laitiers" },
+  { id: "fruit", label: "Fruits" },
+  { id: "autre", label: "Autres" },
+];
+
+const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.id !== "all");
+
+const CATEGORY_RULES = {
+  viande: ["boeuf", "steak", "porc", "jambon", "saucisse", "poulet", "viande", "lardon", "cote"],
+  poisson: ["poisson", "saumon", "truite", "maquereau", "crevette", "sole", "poulpe", "lieu"],
+  legume: ["courgette", "haricot", "pois", "butternut", "legume"],
+  plat: ["gratin", "quiche", "pizza", "soupe", "galette", "fumet", "sauce"],
+  produit_laitier: ["beurre", "emmental", "epoisse", "saint nectaire", "fromage"],
+  fruit: ["fraise", "framboise", "mure", "fruit", "glace"],
+};
+
 const BASE_SUGGESTIONS = [
   "Courgette farcies",
   "Gateau de courgettes",
@@ -76,8 +100,14 @@ const emptyStateByFreezer = {
   freezer2: document.getElementById("empty-state-freezer2"),
 };
 
+const categoryTabsByFreezer = {
+  freezer1: document.getElementById("category-tabs-freezer1"),
+  freezer2: document.getElementById("category-tabs-freezer2"),
+};
+
 let freezerItems = loadItems();
 let activeFreezer = loadActiveFreezer();
+let activeCategoryByFreezer = loadActiveCategories();
 
 function loadItems() {
   const empty = { freezer1: [], freezer2: [] };
@@ -108,11 +138,38 @@ function loadActiveFreezer() {
   return FREEZERS.includes(saved) ? saved : "freezer1";
 }
 
+function loadActiveCategories() {
+  const defaults = { freezer1: "all", freezer2: "all" };
+
+  try {
+    const raw = localStorage.getItem(ACTIVE_CATEGORY_KEY);
+    if (!raw) return defaults;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return defaults;
+
+    return {
+      freezer1: isValidCategory(parsed.freezer1) ? parsed.freezer1 : "all",
+      freezer2: isValidCategory(parsed.freezer2) ? parsed.freezer2 : "all",
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveActiveCategories() {
+  localStorage.setItem(ACTIVE_CATEGORY_KEY, JSON.stringify(activeCategoryByFreezer));
+}
+
 function sanitizeItems(items) {
   if (!Array.isArray(items)) return [];
   return items
     .filter((item) => item && typeof item.name === "string" && Number(item.qty) >= 1)
-    .map((item) => ({ name: item.name, qty: Number(item.qty) }));
+    .map((item) => ({
+      name: item.name,
+      qty: Number(item.qty),
+      category: isValidItemCategory(item.category) ? item.category : "auto",
+    }));
 }
 
 function saveItems() {
@@ -129,7 +186,51 @@ function escapeHtml(str) {
 }
 
 function normalizeText(value) {
-  return value.trim().toLowerCase();
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isValidCategory(categoryId) {
+  return CATEGORIES.some((category) => category.id === categoryId);
+}
+
+function isValidItemCategory(categoryId) {
+  return categoryId === "auto" || EDITABLE_CATEGORIES.some((category) => category.id === categoryId);
+}
+
+function detectCategory(name) {
+  const normalizedName = normalizeText(name);
+
+  for (const [categoryId, keywords] of Object.entries(CATEGORY_RULES)) {
+    if (keywords.some((keyword) => normalizedName.includes(keyword))) {
+      return categoryId;
+    }
+  }
+
+  return "autre";
+}
+
+function getItemCategory(item) {
+  if (isValidItemCategory(item.category) && item.category !== "auto") {
+    return item.category;
+  }
+
+  return detectCategory(item.name);
+}
+
+function buildCategorySelectHtml(item, freezerId, index) {
+  const selected = isValidItemCategory(item.category) ? item.category : "auto";
+  const options = [
+    '<option value="auto">Auto</option>',
+    ...EDITABLE_CATEGORIES.map(
+      (category) => `<option value="${category.id}" ${selected === category.id ? "selected" : ""}>${category.label}</option>`
+    ),
+  ].join("");
+
+  return `<select class="category-select" data-action="set-category" data-freezer="${freezerId}" data-index="${index}" aria-label="Categorie produit">${options}</select>`;
 }
 
 function collectSuggestions() {
@@ -177,34 +278,81 @@ function renderSuggestions(filterText = "") {
   suggestionsEl.hidden = false;
 }
 
+function renderCategoryTabs(freezerId) {
+  const container = categoryTabsByFreezer[freezerId];
+  const items = freezerItems[freezerId];
+  if (!container || !items) return;
+
+  const categoriesInUse = new Set(items.map((item) => getItemCategory(item)));
+  const visibleCategories = CATEGORIES.filter((category) => category.id === "all" || categoriesInUse.has(category.id));
+
+  if (!visibleCategories.some((category) => category.id === activeCategoryByFreezer[freezerId])) {
+    activeCategoryByFreezer[freezerId] = "all";
+    saveActiveCategories();
+  }
+
+  container.innerHTML = visibleCategories
+    .map((category) => {
+      const isActive = category.id === activeCategoryByFreezer[freezerId];
+      return `<button class="category-tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" data-category="${category.id}" type="button">${category.label}</button>`;
+    })
+    .join("");
+}
+
+function getFilteredItems(freezerId) {
+  const items = freezerItems[freezerId] || [];
+  const activeCategory = activeCategoryByFreezer[freezerId] || "all";
+
+  if (activeCategory === "all") {
+    return items;
+  }
+
+  return items.filter((item) => getItemCategory(item) === activeCategory);
+}
+
 function renderFreezer(freezerId) {
   const listEl = listByFreezer[freezerId];
   const emptyStateEl = emptyStateByFreezer[freezerId];
-  const items = freezerItems[freezerId];
+  const allItems = freezerItems[freezerId];
 
-  if (!listEl || !emptyStateEl) return;
+  if (!listEl || !emptyStateEl || !allItems) return;
+
+  renderCategoryTabs(freezerId);
+  const items = getFilteredItems(freezerId);
+
+  if (allItems.length === 0) {
+    listEl.innerHTML = "";
+    emptyStateEl.textContent = "Aucun produit dans ce congelateur.";
+    emptyStateEl.style.display = "block";
+    return;
+  }
 
   if (items.length === 0) {
     listEl.innerHTML = "";
+    emptyStateEl.textContent = "Aucun produit dans cette categorie.";
     emptyStateEl.style.display = "block";
     return;
   }
 
   emptyStateEl.style.display = "none";
   listEl.innerHTML = items
-    .map(
-      (item, index) => `
+    .map((item) => {
+      const realIndex = allItems.indexOf(item);
+      return `
       <li class="product-item">
-        <span class="item-name">${escapeHtml(item.name)}</span>
+        <div>
+          <span class="item-name">${escapeHtml(item.name)}</span>
+          <div class="item-meta">${buildCategorySelectHtml(item, freezerId, realIndex)}</div>
+        </div>
         <div class="item-controls">
-          <button class="ctrl-btn" data-action="decrease" data-freezer="${freezerId}" data-index="${index}" type="button">-</button>
+          <button class="ctrl-btn" data-action="decrease" data-freezer="${freezerId}" data-index="${realIndex}" type="button">-</button>
           <span class="qty">${item.qty}</span>
-          <button class="ctrl-btn" data-action="increase" data-freezer="${freezerId}" data-index="${index}" type="button">+</button>
-          <button class="ctrl-btn remove-btn" data-action="remove" data-freezer="${freezerId}" data-index="${index}" type="button">X</button>
+          <button class="ctrl-btn" data-action="increase" data-freezer="${freezerId}" data-index="${realIndex}" type="button">+</button>
+          <button class="ctrl-btn remove-btn" data-action="remove" data-freezer="${freezerId}" data-index="${realIndex}" type="button">X</button>
         </div>
       </li>
-    `
-    )
+    `;
+    })
     .join("");
 }
 
@@ -227,6 +375,24 @@ function setActiveFreezer(freezerId) {
   freezerPanels.forEach((panel) => {
     panel.hidden = panel.dataset.freezer !== freezerId;
   });
+}
+
+function setActiveCategory(freezerId, categoryId) {
+  if (!FREEZERS.includes(freezerId) || !isValidCategory(categoryId)) return;
+
+  activeCategoryByFreezer[freezerId] = categoryId;
+  saveActiveCategories();
+  renderFreezer(freezerId);
+}
+
+function setItemCategory(freezerId, index, categoryId) {
+  const items = freezerItems[freezerId];
+  if (!items || !items[index]) return;
+  if (!isValidItemCategory(categoryId)) return;
+
+  items[index].category = categoryId;
+  saveItems();
+  renderFreezer(freezerId);
 }
 
 function updateItem(freezerId, action, index) {
@@ -269,7 +435,7 @@ form.addEventListener("submit", (event) => {
   if (existing) {
     existing.qty += qty;
   } else {
-    targetItems.push({ name, qty });
+    targetItems.push({ name, qty, category: "auto" });
   }
 
   saveItems();
@@ -337,6 +503,36 @@ FREEZERS.forEach((freezerId) => {
     if (!action || Number.isNaN(index) || !FREEZERS.includes(targetFreezer)) return;
     updateItem(targetFreezer, action, index);
   });
+
+  listEl.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) return;
+    if (target.dataset.action !== "set-category") return;
+
+    const targetFreezer = target.dataset.freezer;
+    const index = Number(target.dataset.index);
+    const categoryId = target.value;
+
+    if (!targetFreezer || Number.isNaN(index)) return;
+    setItemCategory(targetFreezer, index, categoryId);
+  });
+
+  const categoryTabs = categoryTabsByFreezer[freezerId];
+  if (!categoryTabs) return;
+
+  categoryTabs.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const btn = target.closest(".category-tab-btn");
+    if (!(btn instanceof HTMLElement)) return;
+
+    const tabFreezer = btn.dataset.freezer;
+    const categoryId = btn.dataset.category;
+
+    if (!tabFreezer || !categoryId) return;
+    setActiveCategory(tabFreezer, categoryId);
+  });
 });
 
 clearButtons.forEach((button) => {
@@ -345,7 +541,9 @@ clearButtons.forEach((button) => {
     if (!FREEZERS.includes(freezerId)) return;
 
     freezerItems[freezerId] = [];
+    activeCategoryByFreezer[freezerId] = "all";
     saveItems();
+    saveActiveCategories();
     renderFreezer(freezerId);
     renderSuggestions(nameInput.value);
   });
