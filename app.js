@@ -263,6 +263,11 @@ function renderSuggestions(filterText = "") {
   if (!suggestionsEl) return;
 
   const filter = normalizeText(filterText);
+  if (filter.length < 1) {
+    hideSuggestions();
+    return;
+  }
+
   const options = collectSuggestions()
     .filter((name) => normalizeText(name).includes(filter))
     .slice(0, 10);
@@ -622,7 +627,7 @@ generateQrBtn.addEventListener("click", () => {
   appUrlInput.value = initialUrl;
   setQrCode(initialUrl);
   renderAll();
-  renderSuggestions("");
+  hideSuggestions();
   setActiveFreezer(activeFreezer);
   startAutoRefreshWatcher();
 })();
