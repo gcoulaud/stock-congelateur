@@ -248,6 +248,10 @@ button.danger {
   gap: 4px;
 }
 
+.category-menu[hidden] {
+  display: none;
+}
+
 .category-option-btn {
   background: #fff;
   color: var(--text);
