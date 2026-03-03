@@ -58,3 +58,17 @@ L'application verifie `version.json` toutes les 60 secondes.
 Si la version change, la page se recharge automatiquement.
 
 A chaque modification publiee, pense a mettre a jour la valeur `version` dans `version.json`.
+
+
+## Mode partage foyer (cloud)
+
+L'application peut synchroniser les stocks entre tous les telephones avec Firebase Firestore.
+
+1. Cree un projet Firebase
+2. Active Firestore Database (mode production ou test)
+3. Dans Project settings > General > Your apps > Web app, recupere la configuration
+4. Ouvre `app.js` et remplace les champs de `FIREBASE_CONFIG`
+5. Redeploie sur GitHub Pages
+
+Quand la configuration est correcte, l'etat affiche `Synchro cloud active`.
+Sans configuration, l'app reste en mode local (chaque telephone a ses propres donnees).
