@@ -131,11 +131,12 @@ function isValidItemCategory(categoryId) {
 function sanitizeItems(items) {
   if (!Array.isArray(items)) return [];
   return items
-    .filter((item) => item && typeof item.name === "string" && Number(item.qty) >= 1)
+    .filter((item) => item && typeof item.name === "string" && Number(item.qty) >= 0)
     .map((item) => ({
       name: item.name,
       qty: Number(item.qty),
       category: isValidItemCategory(item.category) ? item.category : "auto",
+      active: item.active === false ? false : Number(item.qty) > 0,
     }));
 }
 
@@ -434,7 +435,8 @@ function renderCategoryTabs(freezerId) {
 function getFilteredItems(freezerId) {
   const activeCategory = activeCategoryByFreezer[freezerId] || "all";
   const items = freezerItems[freezerId];
-  const filtered = activeCategory === "all" ? [...items] : items.filter((item) => getItemCategory(item) === activeCategory);
+  const visible = items.filter((item) => item.active !== false && Number(item.qty) > 0);
+  const filtered = activeCategory === "all" ? [...visible] : visible.filter((item) => getItemCategory(item) === activeCategory);
 
   // Keep storage order intact; only sort display order.
   return filtered.sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name), "fr"));
@@ -448,7 +450,9 @@ function renderFreezer(freezerId) {
   renderCategoryTabs(freezerId);
   const items = getFilteredItems(freezerId);
 
-  if (allItems.length === 0) {
+  const visibleAllItems = allItems.filter((item) => item.active !== false && Number(item.qty) > 0);
+
+  if (visibleAllItems.length === 0) {
     listEl.innerHTML = "";
     emptyStateEl.textContent = "Aucun produit dans ce congelateur.";
     emptyStateEl.style.display = "block";
@@ -514,9 +518,24 @@ async function updateItem(freezerId, action, index) {
   const item = items[index];
   if (!item) return;
 
-  if (action === "increase") item.qty += 1;
-  if (action === "decrease") item.qty = Math.max(1, item.qty - 1);
-  if (action === "remove") items.splice(index, 1);
+  if (action === "increase") {
+    item.qty += 1;
+    item.active = true;
+  }
+
+  if (action === "decrease") {
+    if (item.qty <= 1) {
+      item.qty = 0;
+      item.active = false;
+    } else {
+      item.qty -= 1;
+    }
+  }
+
+  if (action === "remove") {
+    item.qty = 0;
+    item.active = false;
+  }
 
   await saveItems();
   renderFreezer(freezerId);
@@ -538,8 +557,9 @@ form.addEventListener("submit", async (event) => {
 
   if (existing) {
     existing.qty += qty;
+    existing.active = true;
   } else {
-    targetItems.push({ name, qty, category: "auto" });
+    targetItems.push({ name, qty, category: "auto", active: true });
   }
 
   await saveItems();
