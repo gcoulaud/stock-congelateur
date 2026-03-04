@@ -23,7 +23,7 @@ const CATEGORIES = [
   { id: "viande", label: "Viandes" },
   { id: "poisson", label: "Poissons" },
   { id: "legume", label: "Legumes" },
-  { id: "plat", label: "Plats" },
+  { id: "plat", label: "Plats cuisines" },
   { id: "produit_laitier", label: "Laitiers" },
   { id: "fruit", label: "Fruits" },
   { id: "autre", label: "Autres" },
@@ -352,8 +352,7 @@ function renderCategoryTabs(freezerId) {
   const items = freezerItems[freezerId];
   if (!container) return;
 
-  const categoriesInUse = new Set(items.map((item) => getItemCategory(item)));
-  const visibleCategories = CATEGORIES.filter((category) => category.id === "all" || categoriesInUse.has(category.id));
+  const visibleCategories = CATEGORIES;
 
   if (!visibleCategories.some((category) => category.id === activeCategoryByFreezer[freezerId])) {
     activeCategoryByFreezer[freezerId] = "all";
@@ -363,7 +362,8 @@ function renderCategoryTabs(freezerId) {
   container.innerHTML = visibleCategories
     .map((category) => {
       const isActive = category.id === activeCategoryByFreezer[freezerId];
-      return `<button class="category-tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" data-category="${category.id}" type="button">${category.label}</button>`;
+      const label = category.id === "plat" ? "Plats<br>cuisines" : escapeHtml(category.label);
+      return `<button class="category-tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" data-category="${category.id}" type="button">${label}</button>`;
     })
     .join("");
 }
