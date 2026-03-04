@@ -67,7 +67,6 @@ const suggestionsEl = document.getElementById("product-suggestions");
 const qtyInput = document.getElementById("product-qty");
 const tabButtons = document.querySelectorAll(".tab-btn");
 const freezerPanels = document.querySelectorAll(".freezer-panel");
-const clearButtons = document.querySelectorAll(".clear-freezer");
 const appUrlInput = document.getElementById("app-url");
 const generateQrBtn = document.getElementById("generate-qr");
 const qrImage = document.getElementById("qr-image");
@@ -568,20 +567,6 @@ FREEZERS.forEach((freezerId) => {
   });
 });
 
-clearButtons.forEach((button) => {
-  button.addEventListener("click", async () => {
-    const freezerId = button.dataset.freezer;
-    if (!FREEZERS.includes(freezerId)) return;
-
-    freezerItems[freezerId] = [];
-    activeCategoryByFreezer[freezerId] = "all";
-    saveActiveCategories();
-    await saveItems();
-    renderFreezer(freezerId);
-    renderSuggestions(nameInput.value);
-    closeAllCategoryMenus();
-  });
-});
 
 document.addEventListener("click", (event) => {
   const target = event.target;
