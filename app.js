@@ -371,8 +371,10 @@ function renderCategoryTabs(freezerId) {
 function getFilteredItems(freezerId) {
   const activeCategory = activeCategoryByFreezer[freezerId] || "all";
   const items = freezerItems[freezerId];
-  if (activeCategory === "all") return items;
-  return items.filter((item) => getItemCategory(item) === activeCategory);
+  const filtered = activeCategory === "all" ? [...items] : items.filter((item) => getItemCategory(item) === activeCategory);
+
+  // Keep storage order intact; only sort display order.
+  return filtered.sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name), "fr"));
 }
 
 function renderFreezer(freezerId) {
