@@ -38,7 +38,7 @@ const CATEGORY_RULES = {
   plat: ["gratin", "quiche", "pizza", "soupe", "galette", "fumet", "sauce"],
   produit_laitier: ["beurre", "emmental", "epoisse", "saint nectaire", "fromage"],
   fruit: ["fraise", "framboise", "mure", "kiwi"],
-  glace: ["glace"]
+  glace: ["glace"],
 };
 
 const BASE_SUGGESTIONS = [
