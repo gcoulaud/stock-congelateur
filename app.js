@@ -26,7 +26,7 @@ const CATEGORIES = [
   { id: "plat", label: "Plats cuisines" },
   { id: "produit_laitier", label: "Laitiers" },
   { id: "fruit", label: "Fruits" },
-  { id: "glace", lavel: "Glaces" },
+  { id: "glace", label: "Glaces" },
   { id: "autre", label: "Autres" },
 ];
 const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.id !== "all");
