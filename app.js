@@ -26,6 +26,7 @@ const CATEGORIES = [
   { id: "plat", label: "Plats cuisines" },
   { id: "produit_laitier", label: "Laitiers" },
   { id: "fruit", label: "Fruits" },
+  { id: "glace", lavel: "Glaces"},
   { id: "autre", label: "Autres" },
 ];
 const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.id !== "all");
@@ -36,7 +37,8 @@ const CATEGORY_RULES = {
   legume: ["courgette", "haricot", "pois", "butternut", "legume"],
   plat: ["gratin", "quiche", "pizza", "soupe", "galette", "fumet", "sauce"],
   produit_laitier: ["beurre", "emmental", "epoisse", "saint nectaire", "fromage"],
-  fruit: ["fraise", "framboise", "mure", "fruit", "glace"],
+  fruit: ["fraise", "framboise", "mure", "kiwi"],
+  glace: ["glace"]
 };
 
 const BASE_SUGGESTIONS = [
@@ -283,7 +285,10 @@ function buildCategoryControlHtml(item, freezerId, index) {
     })
     .join("");
 
-  return `<div class="category-picker"><button class="category-select" data-action="toggle-category-menu" data-freezer="${freezerId}" data-index="${index}" type="button">${getCategoryLabel(current)}</button><div class="category-menu" data-menu="${freezerId}-${index}" hidden>${optionsHtml}</div></div>`;
+  const detected = getCategoryLabel(getItemCategory(item));
+  const triggerLabel = current === "auto" ? `Auto (${detected})` : getCategoryLabel(current);
+
+  return `<div class="category-picker"><button class="category-select" data-action="toggle-category-menu" data-freezer="${freezerId}" data-index="${index}" type="button">${triggerLabel}</button><div class="category-menu" data-menu="${freezerId}-${index}" hidden>${optionsHtml}</div></div>`;
 }
 
 function closeAllCategoryMenus() {
