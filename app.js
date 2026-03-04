@@ -8,12 +8,12 @@ const VERSION_CHECK_INTERVAL_MS = 60000;
 
 // Remplace ces valeurs par la config Firebase de ton projet.
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
+  apiKey: "AIzaSyALmqd64Wk8ezUYVeZBJ8ztOB6kn2cuClU",
+  authDomain: "stock-congelateur-e7de1.firebaseapp.com",
+  projectId: "stock-congelateur-e7de1",
+  storageBucket: "stock-congelateur-e7de1.firebasestorage.app",
+  messagingSenderId: "983458233014",
+  appId: "1:983458233014:web:0aa38741444a5ac0aac417",
 };
 const FIRESTORE_COLLECTION = "sharedStocks";
 const FIRESTORE_DOC_ID = "foyer-principal";
