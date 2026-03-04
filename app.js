@@ -35,7 +35,7 @@ const CATEGORY_RULES = {
   viande: ["boeuf", "steak", "porc", "jambon", "saucisse", "poulet", "viande", "lardon", "cote"],
   poisson: ["poisson", "saumon", "truite", "maquereau", "crevette", "sole", "poulpe", "lieu"],
   legume: ["courgette", "haricot", "pois", "butternut", "legume"],
-  plat: ["gratin", "quiche", "pizza", "soupe", "galette", "fumet", "sauce"],
+  plat: ["gratin", "quiche", "pizza", "soupe", "galette", "sauce"],
   produit_laitier: ["beurre", "emmental", "epoisse", "saint nectaire", "fromage"],
   fruit: ["fraise", "framboise", "mure", "kiwi"],
   glace: ["glace"],
@@ -150,6 +150,54 @@ function sanitizeStockPayload(payload) {
   };
 }
 
+function safeParseJson(value) {
+  if (typeof value !== "string") return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function extractCloudPayload(rawData) {
+  if (!rawData) {
+    return { freezer1: [], freezer2: [] };
+  }
+
+  if (typeof rawData === "string") {
+    const parsed = safeParseJson(rawData);
+    return parsed ? extractCloudPayload(parsed) : { freezer1: [], freezer2: [] };
+  }
+
+  if (typeof rawData !== "object") {
+    return { freezer1: [], freezer2: [] };
+  }
+
+  if (rawData.freezerItems) {
+    if (typeof rawData.freezerItems === "string") {
+      const parsed = safeParseJson(rawData.freezerItems);
+      if (parsed) return sanitizeStockPayload(parsed);
+    }
+
+    if (typeof rawData.freezerItems === "object") {
+      return sanitizeStockPayload(rawData.freezerItems);
+    }
+  }
+
+  if (rawData.freezer1 || rawData.freezer2) {
+    return sanitizeStockPayload(rawData);
+  }
+
+  return {
+    freezer1: sanitizeItems(rawData.cuisine || rawData.Cuisine || rawData.freezer_1),
+    freezer2: sanitizeItems(rawData.celier || rawData.Celier || rawData.freezer_2),
+  };
+}
+
+function hasAnyItems(payload) {
+  return (payload.freezer1?.length || 0) + (payload.freezer2?.length || 0) > 0;
+}
+
 function loadItemsLocal() {
   const empty = { freezer1: [], freezer2: [] };
   try {
@@ -212,9 +260,21 @@ async function initCloudSync() {
         }
 
         const data = snapshot.data();
-        freezerItems = sanitizeStockPayload(data.freezerItems);
+        const cloudItems = extractCloudPayload(data);
+
+        if (!hasAnyItems(cloudItems) && hasAnyItems(freezerItems)) {
+          setSyncStatus("Synchro cloud active (cloud vide ignore)");
+          return;
+        }
+
+        freezerItems = cloudItems;
+        activeCategoryByFreezer = { freezer1: "all", freezer2: "all" };
+        saveActiveCategories();
         saveItemsLocal();
         renderAll();
+
+        const total = (cloudItems.freezer1?.length || 0) + (cloudItems.freezer2?.length || 0);
+        setSyncStatus(`Synchro cloud active (${total} produits)`);
       },
       () => {
         storageMode = "local";
@@ -223,7 +283,6 @@ async function initCloudSync() {
     );
 
     storageMode = "cloud";
-    setSyncStatus("Synchro cloud active");
   } catch {
     storageMode = "local";
     setSyncStatus("Mode local (erreur initialisation cloud)");
