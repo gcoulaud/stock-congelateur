@@ -150,6 +150,32 @@ function sanitizeStockPayload(payload) {
   };
 }
 
+function extractCloudPayload(rawData) {
+  if (!rawData || typeof rawData !== "object") {
+    return { freezer1: [], freezer2: [] };
+  }
+
+  // Preferred format: { freezerItems: { freezer1: [], freezer2: [] } }
+  if (rawData.freezerItems && typeof rawData.freezerItems === "object") {
+    return sanitizeStockPayload(rawData.freezerItems);
+  }
+
+  // Alternate format: { freezer1: [], freezer2: [] }
+  if (rawData.freezer1 || rawData.freezer2) {
+    return sanitizeStockPayload(rawData);
+  }
+
+  // Legacy/human keys often used manually in Firestore console.
+  return {
+    freezer1: sanitizeItems(rawData.cuisine || rawData.Cuisine || rawData.freezer_1),
+    freezer2: sanitizeItems(rawData.celier || rawData.Celier || rawData.freezer_2),
+  };
+}
+
+function hasAnyItems(payload) {
+  return (payload.freezer1?.length || 0) + (payload.freezer2?.length || 0) > 0;
+}
+
 function loadItemsLocal() {
   const empty = { freezer1: [], freezer2: [] };
   try {
@@ -212,7 +238,17 @@ async function initCloudSync() {
         }
 
         const data = snapshot.data();
-        freezerItems = sanitizeStockPayload(data.freezerItems);
+        const cloudItems = extractCloudPayload(data);
+
+        // Guard against accidental overwrite by an empty/invalid cloud payload.
+        if (!hasAnyItems(cloudItems) && hasAnyItems(freezerItems)) {
+          setSyncStatus("Synchro cloud active (cloud vide ignore)");
+          return;
+        }
+
+        freezerItems = cloudItems;
+        activeCategoryByFreezer = { freezer1: "all", freezer2: "all" };
+        saveActiveCategories();
         saveItemsLocal();
         renderAll();
       },
