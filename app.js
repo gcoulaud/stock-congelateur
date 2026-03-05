@@ -291,6 +291,9 @@ async function initCloudSync() {
 }
 
 function loadActiveFreezer() {
+  const hashValue = window.location.hash.replace("#", "").trim();
+  if (FREEZERS.includes(hashValue)) return hashValue;
+
   const saved = localStorage.getItem(ACTIVE_FREEZER_KEY);
   return FREEZERS.includes(saved) ? saved : "freezer1";
 }
@@ -483,6 +486,9 @@ function setActiveFreezer(freezerId) {
   if (!FREEZERS.includes(freezerId)) return;
   activeFreezer = freezerId;
   localStorage.setItem(ACTIVE_FREEZER_KEY, freezerId);
+  if (window.location.hash !== `#${freezerId}`) {
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${freezerId}`);
+  }
 
   tabButtons.forEach((button) => {
     const isActive = button.dataset.freezer === freezerId;
@@ -599,10 +605,16 @@ suggestionsEl.addEventListener("mousedown", (event) => {
   nameInput.focus();
 });
 
-tabButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setActiveFreezer(button.dataset.freezer);
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setActiveFreezer(button.dataset.freezer);
+    });
   });
+
+window.addEventListener("hashchange", () => {
+  const hashValue = window.location.hash.replace("#", "").trim();
+  if (!FREEZERS.includes(hashValue)) return;
+  setActiveFreezer(hashValue);
 });
 
 FREEZERS.forEach((freezerId) => {
