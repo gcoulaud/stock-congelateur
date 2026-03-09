@@ -26,8 +26,27 @@ body {
   padding: 0 16px 24px;
 }
 
+.app-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.app-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
 header h1 {
   margin: 0;
+  line-height: 1.1;
+}
+
+header h1 span {
+  display: block;
 }
 
 header p {
@@ -318,6 +337,11 @@ button.danger {
 }
 
 @media (max-width: 640px) {
+  .app-logo {
+    width: 54px;
+    height: 54px;
+  }
+
   .product-item {
     grid-template-columns: 1fr;
   }
