@@ -32,6 +32,13 @@ body {
   gap: 12px;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .app-logo {
   width: 100px;
   height: 100px;
@@ -53,6 +60,36 @@ header h1 span {
 
 header h1 span:first-child {
   margin-right: 6px;
+}
+
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: var(--muted);
+  background: #fff;
+}
+
+.version-badge.is-ok {
+  border-color: #b9d8c6;
+  color: #1f6b49;
+  background: #eef8f2;
+}
+
+.version-badge.is-checking {
+  border-color: #d9de84;
+  color: #60681f;
+  background: #f8f9ea;
+}
+
+.version-badge.is-unknown {
+  border-color: #d3d8d5;
+  color: #66726d;
+  background: #f5f7f6;
 }
 
 header p {
@@ -230,41 +267,46 @@ button.danger {
 }
 
 .tab-item.is-removable .tab-btn {
-  padding-right: 28px;
+  padding-left: 42px;
+  padding-right: 42px;
 }
 
 .freezer-tab-actions {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -12px;
+  left: -12px;
+  right: -12px;
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
+  pointer-events: none;
 }
 
 .rename-freezer-btn,
 .remove-freezer-btn {
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   padding: 0;
   color: #fff;
   font-weight: 700;
   line-height: 1;
+  pointer-events: auto;
 }
 
 .rename-freezer-btn {
-  border: 1px solid #2f7f58;
-  background: #2f7f58;
-  font-size: 0.7rem;
+  border: 1px solid #2f66d0;
+  background: #2f66d0;
+  font-size: 1.1rem;
 }
 
 .rename-freezer-btn:hover {
-  background: #236243;
+  background: #234fa8;
 }
 
 .remove-freezer-btn {
   border: 1px solid #a92f2f;
   background: #c54141;
+  font-size: 1.2rem;
 }
 
 .remove-freezer-btn:hover {

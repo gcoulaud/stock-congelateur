@@ -80,6 +80,7 @@ const appUrlInput = document.getElementById("app-url");
 const generateQrBtn = document.getElementById("generate-qr");
 const qrImage = document.getElementById("qr-image");
 const syncStatusEl = document.getElementById("sync-status");
+const versionBadgeEl = document.getElementById("app-version-badge");
 
 let freezerItems = loadItemsLocal();
 let freezerLabels = loadFreezerLabelsLocal();
@@ -96,6 +97,15 @@ let freezerLongPressTriggered = false;
 function setSyncStatus(text) {
   if (!syncStatusEl) return;
   syncStatusEl.textContent = text;
+}
+
+function setVersionBadge(text, state = "") {
+  if (!(versionBadgeEl instanceof HTMLElement)) return;
+  versionBadgeEl.textContent = text;
+  versionBadgeEl.classList.remove("is-ok", "is-checking", "is-unknown");
+  if (state) {
+    versionBadgeEl.classList.add(state);
+  }
 }
 
 function hasFirebaseConfig() {
@@ -616,7 +626,7 @@ function renderFreezerTabs() {
       const isActive = freezerId === activeFreezer;
       const showActions = freezerId === freezerActionTarget;
       const showRemoveButton = showActions && isRemovableFreezer(freezerId);
-      return `<div class="tab-item ${showActions ? "is-removable" : ""}" data-tab-item="${freezerId}"><button class="tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" role="tab" aria-selected="${isActive ? "true" : "false"}" type="button">${escapeHtml(getFreezerLabel(freezerId))}</button>${showActions ? `<div class="freezer-tab-actions"><button class="rename-freezer-btn" data-action="rename-freezer" data-freezer="${freezerId}" type="button" aria-label="Renommer ${escapeHtml(getFreezerLabel(freezerId))}">R</button>${showRemoveButton ? `<button class="remove-freezer-btn" data-action="remove-freezer" data-freezer="${freezerId}" type="button" aria-label="Supprimer ${escapeHtml(getFreezerLabel(freezerId))}">-</button>` : ""}</div>` : ""}</div>`;
+      return `<div class="tab-item ${showActions ? "is-removable" : ""}" data-tab-item="${freezerId}"><button class="tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" role="tab" aria-selected="${isActive ? "true" : "false"}" type="button">${escapeHtml(getFreezerLabel(freezerId))}</button>${showActions ? `<div class="freezer-tab-actions"><button class="rename-freezer-btn" data-action="rename-freezer" data-freezer="${freezerId}" type="button" aria-label="Renommer ${escapeHtml(getFreezerLabel(freezerId))}">✎</button>${showRemoveButton ? `<button class="remove-freezer-btn" data-action="remove-freezer" data-freezer="${freezerId}" type="button" aria-label="Supprimer ${escapeHtml(getFreezerLabel(freezerId))}">-</button>` : ""}</div>` : ""}</div>`;
     })
     .join("");
 
@@ -1035,9 +1045,10 @@ generateQrBtn.addEventListener("click", () => {
   setQrCode(normalized);
 });
 
-async function fetchRemoteVersion() {
+async function fetchVersion({ noCache = false } = {}) {
   try {
-    const response = await fetch(`${VERSION_ENDPOINT}?t=${Date.now()}`, { cache: "no-store" });
+    const cacheBuster = noCache ? `?t=${Date.now()}` : "";
+    const response = await fetch(`${VERSION_ENDPOINT}${cacheBuster}`, { cache: noCache ? "no-store" : "default" });
     if (!response.ok) return "";
 
     const payload = await response.json();
@@ -1049,18 +1060,39 @@ async function fetchRemoteVersion() {
   }
 }
 
+async function fetchRemoteVersion() {
+  return fetchVersion({ noCache: true });
+}
+
+async function fetchLocalVersion() {
+  return fetchVersion({ noCache: false });
+}
+
 async function checkForUpdates() {
+  setVersionBadge(currentAppVersion ? `v${currentAppVersion} - verification...` : "Version - verification...", "is-checking");
   const remoteVersion = await fetchRemoteVersion();
-  if (!remoteVersion) return;
+  if (!remoteVersion) {
+    if (currentAppVersion) {
+      setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
+    } else {
+      setVersionBadge("Version inconnue", "is-unknown");
+    }
+    return;
+  }
 
   if (!currentAppVersion) {
     currentAppVersion = remoteVersion;
+    setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
     return;
   }
 
   if (remoteVersion !== currentAppVersion) {
+    setVersionBadge(`MAJ dispo: v${remoteVersion}`, "is-checking");
     window.location.reload();
+    return;
   }
+
+  setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
 }
 
 function startAutoRefreshWatcher() {
@@ -1069,6 +1101,7 @@ function startAutoRefreshWatcher() {
 }
 
 (async function init() {
+  setVersionBadge("Version - verification...", "is-checking");
   const savedUrl = localStorage.getItem(URL_KEY);
   const initialUrl = savedUrl || window.location.href;
   appUrlInput.value = initialUrl;
@@ -1080,6 +1113,14 @@ function startAutoRefreshWatcher() {
   hideSuggestions();
   closeAllCategoryMenus();
   setActiveFreezer(activeFreezer);
+
+  const localVersion = await fetchLocalVersion();
+  if (localVersion) {
+    currentAppVersion = localVersion;
+    setVersionBadge(`v${localVersion} - a jour`, "is-ok");
+  } else {
+    setVersionBadge("Version inconnue", "is-unknown");
+  }
 
   await initCloudSync();
   startAutoRefreshWatcher();
