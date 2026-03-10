@@ -373,14 +373,11 @@ function saveItemsLocal() {
 
 async function saveItemsCloud() {
   if (!stockDocRef) return;
-  await stockDocRef.set(
-    {
-      freezerItems,
-      freezerLabels,
-      updatedAt: Date.now(),
-    },
-    { merge: true }
-  );
+  await stockDocRef.set({
+    freezerItems,
+    freezerLabels,
+    updatedAt: Date.now(),
+  });
 }
 
 async function saveItems() {
