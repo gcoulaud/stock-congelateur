@@ -2,7 +2,11 @@ const STORAGE_KEY = "freezer-stock-items-v1";
 const URL_KEY = "freezer-stock-app-url-v1";
 const ACTIVE_FREEZER_KEY = "freezer-stock-active-tab-v1";
 const ACTIVE_CATEGORY_KEY = "freezer-stock-active-category-v1";
-const FREEZERS = ["freezer1", "freezer2"];
+const FREEZER_LABELS_KEY = "freezer-stock-labels-v1";
+const DEFAULT_FREEZERS = [
+  { id: "freezer1", label: "Cuisine" },
+  { id: "freezer2", label: "Celier" },
+];
 const VERSION_ENDPOINT = "version.json";
 const VERSION_CHECK_INTERVAL_MS = 60000;
 
@@ -67,27 +71,16 @@ const form = document.getElementById("product-form");
 const nameInput = document.getElementById("product-name");
 const suggestionsEl = document.getElementById("product-suggestions");
 const qtyInput = document.getElementById("product-qty");
-const tabButtons = document.querySelectorAll(".tab-btn");
-const freezerPanels = document.querySelectorAll(".freezer-panel");
+const categoryInput = document.getElementById("product-category");
+const freezerTabsEl = document.getElementById("freezer-tabs");
+const freezerPanelsEl = document.getElementById("freezer-panels");
 const appUrlInput = document.getElementById("app-url");
 const generateQrBtn = document.getElementById("generate-qr");
 const qrImage = document.getElementById("qr-image");
 const syncStatusEl = document.getElementById("sync-status");
-
-const listByFreezer = {
-  freezer1: document.getElementById("product-list-freezer1"),
-  freezer2: document.getElementById("product-list-freezer2"),
-};
-const emptyStateByFreezer = {
-  freezer1: document.getElementById("empty-state-freezer1"),
-  freezer2: document.getElementById("empty-state-freezer2"),
-};
-const categoryTabsByFreezer = {
-  freezer1: document.getElementById("category-tabs-freezer1"),
-  freezer2: document.getElementById("category-tabs-freezer2"),
-};
-
 let freezerItems = loadItemsLocal();
+let freezerLabels = loadFreezerLabelsLocal();
+ensureFreezerData();
 let activeFreezer = loadActiveFreezer();
 let activeCategoryByFreezer = loadActiveCategories();
 let stockDocRef = null;
@@ -128,6 +121,47 @@ function isValidItemCategory(categoryId) {
   return categoryId === "auto" || EDITABLE_CATEGORIES.some((category) => category.id === categoryId);
 }
 
+function isFreezerId(freezerId) {
+  return /^freezer\d+$/.test(freezerId);
+}
+
+function getFreezerNumber(freezerId) {
+  const match = freezerId.match(/^freezer(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+function sortFreezerIds(ids) {
+  return [...ids].filter(isFreezerId).sort((a, b) => getFreezerNumber(a) - getFreezerNumber(b));
+}
+
+function getDefaultFreezerLabel(freezerId) {
+  const preset = DEFAULT_FREEZERS.find((freezer) => freezer.id === freezerId);
+  if (preset) return preset.label;
+  const freezerNumber = getFreezerNumber(freezerId) || 1;
+  return `Congelateur ${freezerNumber}`;
+}
+
+function getFreezerIds() {
+  return sortFreezerIds(Object.keys(freezerItems));
+}
+
+function buildDefaultActiveCategories(ids) {
+  const targetIds = Array.isArray(ids) ? ids : getFreezerIds();
+  return targetIds.reduce((acc, freezerId) => {
+    acc[freezerId] = "all";
+    return acc;
+  }, {});
+}
+
+function formatCurrentMonthYear() {
+  const now = new Date();
+  return `${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+}
+
+function isValidMonthYear(value) {
+  return typeof value === "string" && /^(0[1-9]|1[0-2])\/\d{4}$/.test(value);
+}
+
 function sanitizeItems(items) {
   if (!Array.isArray(items)) return [];
   return items
@@ -137,18 +171,32 @@ function sanitizeItems(items) {
       qty: Number(item.qty),
       category: isValidItemCategory(item.category) ? item.category : "auto",
       active: item.active === false ? false : Number(item.qty) > 0,
+      addedAt: isValidMonthYear(item.addedAt) ? item.addedAt : "",
     }));
 }
 
 function sanitizeStockPayload(payload) {
+  const defaults = DEFAULT_FREEZERS.reduce((acc, freezer) => {
+    acc[freezer.id] = [];
+    return acc;
+  }, {});
+
   if (!payload || typeof payload !== "object") {
-    return { freezer1: [], freezer2: [] };
+    return defaults;
   }
 
-  return {
-    freezer1: sanitizeItems(payload.freezer1),
-    freezer2: sanitizeItems(payload.freezer2),
-  };
+  const sanitized = {};
+  Object.entries(payload).forEach(([key, value]) => {
+    if (isFreezerId(key)) {
+      sanitized[key] = sanitizeItems(value);
+    }
+  });
+
+  if (Object.keys(sanitized).length === 0) {
+    return defaults;
+  }
+
+  return { ...defaults, ...sanitized };
 }
 
 function safeParseJson(value) {
@@ -161,17 +209,18 @@ function safeParseJson(value) {
 }
 
 function extractCloudPayload(rawData) {
+  const defaults = sanitizeStockPayload(null);
   if (!rawData) {
-    return { freezer1: [], freezer2: [] };
+    return defaults;
   }
 
   if (typeof rawData === "string") {
     const parsed = safeParseJson(rawData);
-    return parsed ? extractCloudPayload(parsed) : { freezer1: [], freezer2: [] };
+    return parsed ? extractCloudPayload(parsed) : defaults;
   }
 
   if (typeof rawData !== "object") {
-    return { freezer1: [], freezer2: [] };
+    return defaults;
   }
 
   if (rawData.freezerItems) {
@@ -189,25 +238,41 @@ function extractCloudPayload(rawData) {
     return sanitizeStockPayload(rawData);
   }
 
-  return {
+  const legacyPayload = {
     freezer1: sanitizeItems(rawData.cuisine || rawData.Cuisine || rawData.freezer_1),
     freezer2: sanitizeItems(rawData.celier || rawData.Celier || rawData.freezer_2),
   };
+  return sanitizeStockPayload(legacyPayload);
+}
+
+function extractCloudLabels(rawData, freezerIds) {
+  const labels = {};
+  const targetIds = Array.isArray(freezerIds) ? freezerIds : [];
+  const rawLabels =
+    typeof rawData?.freezerLabels === "string" ? safeParseJson(rawData.freezerLabels) : rawData?.freezerLabels;
+
+  targetIds.forEach((freezerId) => {
+    const rawLabel = rawLabels && typeof rawLabels === "object" ? rawLabels[freezerId] : "";
+    labels[freezerId] =
+      typeof rawLabel === "string" && rawLabel.trim() ? rawLabel.trim() : getDefaultFreezerLabel(freezerId);
+  });
+
+  return labels;
 }
 
 function hasAnyItems(payload) {
-  return (payload.freezer1?.length || 0) + (payload.freezer2?.length || 0) > 0;
+  return Object.values(payload || {}).reduce((total, items) => total + (Array.isArray(items) ? items.length : 0), 0) > 0;
 }
 
 function loadItemsLocal() {
-  const empty = { freezer1: [], freezer2: [] };
+  const empty = sanitizeStockPayload(null);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return empty;
 
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return { freezer1: sanitizeItems(parsed), freezer2: [] };
+      return sanitizeStockPayload({ freezer1: sanitizeItems(parsed) });
     }
 
     return sanitizeStockPayload(parsed);
@@ -216,8 +281,60 @@ function loadItemsLocal() {
   }
 }
 
+function loadFreezerLabelsLocal() {
+  const defaults = DEFAULT_FREEZERS.reduce((acc, freezer) => {
+    acc[freezer.id] = freezer.label;
+    return acc;
+  }, {});
+
+  try {
+    const raw = localStorage.getItem(FREEZER_LABELS_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return defaults;
+
+    const labels = { ...defaults };
+    Object.entries(parsed).forEach(([freezerId, label]) => {
+      if (!isFreezerId(freezerId) || typeof label !== "string" || !label.trim()) return;
+      labels[freezerId] = label.trim();
+    });
+    return labels;
+  } catch {
+    return defaults;
+  }
+}
+
+function saveFreezerLabelsLocal() {
+  localStorage.setItem(FREEZER_LABELS_KEY, JSON.stringify(freezerLabels));
+}
+
+function ensureFreezerData() {
+  const sanitized = {};
+  Object.entries(freezerItems).forEach(([freezerId, items]) => {
+    if (isFreezerId(freezerId)) {
+      sanitized[freezerId] = sanitizeItems(items);
+    }
+  });
+
+  DEFAULT_FREEZERS.forEach((freezer) => {
+    if (!Array.isArray(sanitized[freezer.id])) {
+      sanitized[freezer.id] = [];
+    }
+  });
+  freezerItems = sanitized;
+
+  const ids = getFreezerIds();
+  const nextLabels = {};
+  ids.forEach((freezerId) => {
+    const label = freezerLabels?.[freezerId];
+    nextLabels[freezerId] = typeof label === "string" && label.trim() ? label.trim() : getDefaultFreezerLabel(freezerId);
+  });
+  freezerLabels = nextLabels;
+}
+
 function saveItemsLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(freezerItems));
+  saveFreezerLabelsLocal();
 }
 
 async function saveItemsCloud() {
@@ -225,6 +342,7 @@ async function saveItemsCloud() {
   await stockDocRef.set(
     {
       freezerItems,
+      freezerLabels,
       updatedAt: Date.now(),
     },
     { merge: true }
@@ -262,6 +380,8 @@ async function initCloudSync() {
 
         const data = snapshot.data();
         const cloudItems = extractCloudPayload(data);
+        const cloudIds = sortFreezerIds(Object.keys(cloudItems));
+        const cloudLabels = extractCloudLabels(data, cloudIds);
 
         if (!hasAnyItems(cloudItems) && hasAnyItems(freezerItems)) {
           setSyncStatus("Synchro cloud active (cloud vide ignore)");
@@ -269,12 +389,14 @@ async function initCloudSync() {
         }
 
         freezerItems = cloudItems;
-        activeCategoryByFreezer = { freezer1: "all", freezer2: "all" };
+        freezerLabels = cloudLabels;
+        ensureFreezerData();
+        activeCategoryByFreezer = buildDefaultActiveCategories();
         saveActiveCategories();
         saveItemsLocal();
         renderAll();
 
-        const total = (cloudItems.freezer1?.length || 0) + (cloudItems.freezer2?.length || 0);
+        const total = Object.values(cloudItems).reduce((sum, items) => sum + (items?.length || 0), 0);
         setSyncStatus(`Synchro cloud active (${total} produits)`);
       },
       () => {
@@ -291,31 +413,38 @@ async function initCloudSync() {
 }
 
 function loadActiveFreezer() {
+  const freezerIds = getFreezerIds();
   const hashValue = window.location.hash.replace("#", "").trim();
-  if (FREEZERS.includes(hashValue)) return hashValue;
+  if (freezerIds.includes(hashValue)) return hashValue;
 
   const saved = localStorage.getItem(ACTIVE_FREEZER_KEY);
-  return FREEZERS.includes(saved) ? saved : "freezer1";
+  if (freezerIds.includes(saved)) return saved;
+  return freezerIds[0] || DEFAULT_FREEZERS[0].id;
 }
 
 function loadActiveCategories() {
-  const defaults = { freezer1: "all", freezer2: "all" };
+  const defaults = buildDefaultActiveCategories();
   try {
     const raw = localStorage.getItem(ACTIVE_CATEGORY_KEY);
     if (!raw) return defaults;
 
     const parsed = JSON.parse(raw);
-    return {
-      freezer1: isValidCategory(parsed.freezer1) ? parsed.freezer1 : "all",
-      freezer2: isValidCategory(parsed.freezer2) ? parsed.freezer2 : "all",
-    };
+    return getFreezerIds().reduce((acc, freezerId) => {
+      const categoryId = parsed?.[freezerId];
+      acc[freezerId] = isValidCategory(categoryId) ? categoryId : "all";
+      return acc;
+    }, {});
   } catch {
     return defaults;
   }
 }
 
 function saveActiveCategories() {
-  localStorage.setItem(ACTIVE_CATEGORY_KEY, JSON.stringify(activeCategoryByFreezer));
+  const payload = getFreezerIds().reduce((acc, freezerId) => {
+    acc[freezerId] = isValidCategory(activeCategoryByFreezer[freezerId]) ? activeCategoryByFreezer[freezerId] : "all";
+    return acc;
+  }, {});
+  localStorage.setItem(ACTIVE_CATEGORY_KEY, JSON.stringify(payload));
 }
 
 function detectCategory(name) {
@@ -336,6 +465,21 @@ function getCategoryLabel(categoryId) {
   if (categoryId === "auto") return "Auto";
   const found = EDITABLE_CATEGORIES.find((category) => category.id === categoryId);
   return found ? found.label : "Auto";
+}
+
+function renderProductCategoryOptions() {
+  if (!(categoryInput instanceof HTMLSelectElement)) return;
+
+  const detectedCategoryId = detectCategory(nameInput.value || "");
+  const detectedLabel = getCategoryLabel(detectedCategoryId);
+  const currentValue = isValidItemCategory(categoryInput.value) ? categoryInput.value : "auto";
+
+  categoryInput.innerHTML = [
+    `<option value="auto">Auto (${escapeHtml(detectedLabel)})</option>`,
+    ...EDITABLE_CATEGORIES.map((category) => `<option value="${category.id}">${escapeHtml(category.label)}</option>`),
+  ].join("");
+
+  categoryInput.value = currentValue;
 }
 
 function buildCategoryControlHtml(item, freezerId, index) {
@@ -375,8 +519,8 @@ function collectSuggestions() {
     if (key) known.set(key, name);
   });
 
-  FREEZERS.forEach((freezerId) => {
-    freezerItems[freezerId].forEach((item) => {
+  getFreezerIds().forEach((freezerId) => {
+    (freezerItems[freezerId] || []).forEach((item) => {
       const key = normalizeText(item.name);
       if (key && !known.has(key)) {
         known.set(key, item.name);
@@ -414,9 +558,43 @@ function renderSuggestions(filterText = "") {
   suggestionsEl.hidden = false;
 }
 
+function getFreezerLabel(freezerId) {
+  return freezerLabels[freezerId] || getDefaultFreezerLabel(freezerId);
+}
+
+function ensureFreezerPanel(freezerId) {
+  const existing = freezerPanelsEl.querySelector(`.freezer-panel[data-freezer="${freezerId}"]`);
+  if (existing) return existing;
+
+  const article = document.createElement("article");
+  article.className = "freezer-panel";
+  article.dataset.freezer = freezerId;
+  article.hidden = true;
+  article.innerHTML = `
+    <div class="list-header">
+      <h3>${escapeHtml(getFreezerLabel(freezerId))}</h3>
+    </div>
+    <div class="category-tabs" data-category-tabs="${freezerId}" role="tablist" aria-label="Categories ${escapeHtml(getFreezerLabel(freezerId))}"></div>
+    <ul class="product-list" data-product-list="${freezerId}"></ul>
+    <p class="empty-state" data-empty-state="${freezerId}">Aucun produit dans ce congelateur.</p>
+  `;
+  freezerPanelsEl.appendChild(article);
+  return article;
+}
+
+function renderFreezerTabs() {
+  const freezerTabs = getFreezerIds()
+    .map((freezerId) => {
+      const isActive = freezerId === activeFreezer;
+      return `<button class="tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" role="tab" aria-selected="${isActive ? "true" : "false"}" type="button">${escapeHtml(getFreezerLabel(freezerId))}</button>`;
+    })
+    .join("");
+
+  freezerTabsEl.innerHTML = `${freezerTabs}<button class="add-freezer-btn" data-action="add-freezer" type="button" aria-label="Ajouter un congelateur">+ Congelateur</button>`;
+}
+
 function renderCategoryTabs(freezerId) {
-  const container = categoryTabsByFreezer[freezerId];
-  const items = freezerItems[freezerId];
+  const container = freezerPanelsEl.querySelector(`[data-category-tabs="${freezerId}"]`);
   if (!container) return;
 
   const visibleCategories = CATEGORIES;
@@ -437,7 +615,7 @@ function renderCategoryTabs(freezerId) {
 
 function getFilteredItems(freezerId) {
   const activeCategory = activeCategoryByFreezer[freezerId] || "all";
-  const items = freezerItems[freezerId];
+  const items = freezerItems[freezerId] || [];
   const visible = items.filter((item) => item.active !== false && Number(item.qty) > 0);
   const filtered = activeCategory === "all" ? [...visible] : visible.filter((item) => getItemCategory(item) === activeCategory);
 
@@ -446,9 +624,12 @@ function getFilteredItems(freezerId) {
 }
 
 function renderFreezer(freezerId) {
-  const listEl = listByFreezer[freezerId];
-  const emptyStateEl = emptyStateByFreezer[freezerId];
-  const allItems = freezerItems[freezerId];
+  const panel = ensureFreezerPanel(freezerId);
+  panel.querySelector("h3").textContent = getFreezerLabel(freezerId);
+  const listEl = panel.querySelector(`[data-product-list="${freezerId}"]`);
+  const emptyStateEl = panel.querySelector(`[data-empty-state="${freezerId}"]`);
+  const allItems = freezerItems[freezerId] || [];
+  if (!(listEl instanceof HTMLElement) || !(emptyStateEl instanceof HTMLElement)) return;
 
   renderCategoryTabs(freezerId);
   const items = getFilteredItems(freezerId);
@@ -473,36 +654,47 @@ function renderFreezer(freezerId) {
   listEl.innerHTML = items
     .map((item) => {
       const realIndex = allItems.indexOf(item);
-      return `<li class="product-item"><div><span class="item-name">${escapeHtml(item.name)}</span><div class="item-meta">${buildCategoryControlHtml(item, freezerId, realIndex)}</div></div><div class="item-controls"><button class="ctrl-btn" data-action="decrease" data-freezer="${freezerId}" data-index="${realIndex}" type="button">-</button><span class="qty">${item.qty}</span><button class="ctrl-btn" data-action="increase" data-freezer="${freezerId}" data-index="${realIndex}" type="button">+</button><button class="ctrl-btn remove-btn" data-action="remove" data-freezer="${freezerId}" data-index="${realIndex}" type="button">X</button></div></li>`;
+      const addedAtHtml = item.addedAt ? `<div class="item-date">Ajoute le: ${escapeHtml(item.addedAt)}</div>` : "";
+      return `<li class="product-item"><div><span class="item-name">${escapeHtml(item.name)}</span><div class="item-meta">${buildCategoryControlHtml(item, freezerId, realIndex)}${addedAtHtml}</div></div><div class="item-controls"><button class="ctrl-btn" data-action="decrease" data-freezer="${freezerId}" data-index="${realIndex}" type="button">-</button><span class="qty">${item.qty}</span><button class="ctrl-btn" data-action="increase" data-freezer="${freezerId}" data-index="${realIndex}" type="button">+</button><button class="ctrl-btn remove-btn" data-action="remove" data-freezer="${freezerId}" data-index="${realIndex}" type="button">X</button></div></li>`;
     })
     .join("");
 }
 
 function renderAll() {
-  FREEZERS.forEach(renderFreezer);
+  ensureFreezerData();
+  renderFreezerTabs();
+  freezerPanelsEl.innerHTML = "";
+  getFreezerIds().forEach((freezerId) => {
+    renderFreezer(freezerId);
+  });
+
+  if (!freezerItems[activeFreezer]) {
+    activeFreezer = getFreezerIds()[0] || DEFAULT_FREEZERS[0].id;
+  }
+  setActiveFreezer(activeFreezer);
 }
 
 function setActiveFreezer(freezerId) {
-  if (!FREEZERS.includes(freezerId)) return;
+  if (!freezerItems[freezerId]) return;
   activeFreezer = freezerId;
   localStorage.setItem(ACTIVE_FREEZER_KEY, freezerId);
   if (window.location.hash !== `#${freezerId}`) {
     window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${freezerId}`);
   }
 
-  tabButtons.forEach((button) => {
+  freezerTabsEl.querySelectorAll(".tab-btn").forEach((button) => {
     const isActive = button.dataset.freezer === freezerId;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-selected", isActive ? "true" : "false");
   });
 
-  freezerPanels.forEach((panel) => {
+  freezerPanelsEl.querySelectorAll(".freezer-panel").forEach((panel) => {
     panel.hidden = panel.dataset.freezer !== freezerId;
   });
 }
 
 function setActiveCategory(freezerId, categoryId) {
-  if (!FREEZERS.includes(freezerId) || !isValidCategory(categoryId)) return;
+  if (!freezerItems[freezerId] || !isValidCategory(categoryId)) return;
   activeCategoryByFreezer[freezerId] = categoryId;
   saveActiveCategories();
   renderFreezer(freezerId);
@@ -520,7 +712,7 @@ async function setItemCategory(freezerId, index, categoryId) {
 }
 
 async function updateItem(freezerId, action, index) {
-  const items = freezerItems[freezerId];
+  const items = freezerItems[freezerId] || [];
   const item = items[index];
   if (!item) return;
 
@@ -549,14 +741,30 @@ async function updateItem(freezerId, action, index) {
   renderSuggestions(nameInput.value);
 }
 
+async function addFreezer() {
+  const existingIds = getFreezerIds();
+  const nextNumber = existingIds.reduce((max, freezerId) => Math.max(max, getFreezerNumber(freezerId)), 0) + 1;
+  const freezerId = `freezer${nextNumber}`;
+  freezerItems[freezerId] = [];
+  freezerLabels[freezerId] = `Congelateur ${nextNumber}`;
+  activeCategoryByFreezer[freezerId] = "all";
+
+  await saveItems();
+  saveActiveCategories();
+  renderAll();
+  setActiveFreezer(freezerId);
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const freezerId = activeFreezer;
   const name = nameInput.value.trim();
   const qty = Number(qtyInput.value);
+  const selectedCategory = categoryInput instanceof HTMLSelectElement ? categoryInput.value : "auto";
+  const categoryToApply = isValidItemCategory(selectedCategory) ? selectedCategory : "auto";
 
-  if (!FREEZERS.includes(freezerId) || !name || Number.isNaN(qty) || qty < 1) return;
+  if (!freezerItems[freezerId] || !name || Number.isNaN(qty) || qty < 1) return;
 
   const targetItems = freezerItems[freezerId];
   const existing = targetItems.find((item) => item.name.toLowerCase() === name.toLowerCase());
@@ -564,25 +772,37 @@ form.addEventListener("submit", async (event) => {
   if (existing) {
     existing.qty += qty;
     existing.active = true;
+    if (categoryToApply !== "auto") {
+      existing.category = categoryToApply;
+    }
+    if (!existing.addedAt) {
+      existing.addedAt = formatCurrentMonthYear();
+    }
   } else {
-    targetItems.push({ name, qty, category: "auto", active: true });
+    targetItems.push({ name, qty, category: categoryToApply, active: true, addedAt: formatCurrentMonthYear() });
   }
 
   await saveItems();
-  renderFreezer(freezerId);
+  renderAll();
   hideSuggestions();
   closeAllCategoryMenus();
 
   nameInput.value = "";
   qtyInput.value = "1";
+  if (categoryInput instanceof HTMLSelectElement) {
+    categoryInput.value = "auto";
+  }
+  renderProductCategoryOptions();
   nameInput.focus();
 });
 
 nameInput.addEventListener("input", () => {
   renderSuggestions(nameInput.value);
+  renderProductCategoryOptions();
 });
 nameInput.addEventListener("focus", () => {
   renderSuggestions(nameInput.value);
+  renderProductCategoryOptions();
 });
 nameInput.addEventListener("blur", () => {
   setTimeout(hideSuggestions, 120);
@@ -601,66 +821,69 @@ suggestionsEl.addEventListener("mousedown", (event) => {
   const value = btn.dataset.value;
   if (!value) return;
   nameInput.value = value;
+  renderProductCategoryOptions();
   hideSuggestions();
   nameInput.focus();
 });
 
-  tabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      setActiveFreezer(button.dataset.freezer);
-    });
-  });
+freezerTabsEl.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const addBtn = target.closest("[data-action='add-freezer']");
+  if (addBtn instanceof HTMLElement) {
+    await addFreezer();
+    return;
+  }
+
+  const tabBtn = target.closest(".tab-btn");
+  if (!(tabBtn instanceof HTMLElement)) return;
+  const freezerId = tabBtn.dataset.freezer;
+  if (!freezerId) return;
+  setActiveFreezer(freezerId);
+});
 
 window.addEventListener("hashchange", () => {
   const hashValue = window.location.hash.replace("#", "").trim();
-  if (!FREEZERS.includes(hashValue)) return;
+  if (!freezerItems[hashValue]) return;
   setActiveFreezer(hashValue);
 });
 
-FREEZERS.forEach((freezerId) => {
-  const listEl = listByFreezer[freezerId];
-  const categoryTabs = categoryTabsByFreezer[freezerId];
+freezerPanelsEl.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
 
-  listEl.addEventListener("click", async (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-
-    const actionEl = target.closest("[data-action][data-freezer][data-index]");
-    if (!(actionEl instanceof HTMLElement)) return;
-
-    const action = actionEl.dataset.action;
-    const index = Number(actionEl.dataset.index);
-    const targetFreezer = actionEl.dataset.freezer;
-
-    if (!action || Number.isNaN(index) || !FREEZERS.includes(targetFreezer)) return;
-
-    if (action === "toggle-category-menu") {
-      toggleCategoryMenu(targetFreezer, index);
-      return;
-    }
-
-    if (action === "set-category") {
-      const categoryId = actionEl.dataset.category;
-      if (!categoryId) return;
-      await setItemCategory(targetFreezer, index, categoryId);
-      return;
-    }
-
-    await updateItem(targetFreezer, action, index);
-  });
-
-  categoryTabs.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    const btn = target.closest(".category-tab-btn");
-    if (!(btn instanceof HTMLElement)) return;
-
-    const tabFreezer = btn.dataset.freezer;
-    const categoryId = btn.dataset.category;
+  const categoryTabBtn = target.closest(".category-tab-btn");
+  if (categoryTabBtn instanceof HTMLElement) {
+    const tabFreezer = categoryTabBtn.dataset.freezer;
+    const categoryId = categoryTabBtn.dataset.category;
     if (!tabFreezer || !categoryId) return;
-
     setActiveCategory(tabFreezer, categoryId);
-  });
+    return;
+  }
+
+  const actionEl = target.closest("[data-action][data-freezer][data-index]");
+  if (!(actionEl instanceof HTMLElement)) return;
+
+  const action = actionEl.dataset.action;
+  const index = Number(actionEl.dataset.index);
+  const targetFreezer = actionEl.dataset.freezer;
+
+  if (!action || Number.isNaN(index) || !freezerItems[targetFreezer]) return;
+
+  if (action === "toggle-category-menu") {
+    toggleCategoryMenu(targetFreezer, index);
+    return;
+  }
+
+  if (action === "set-category") {
+    const categoryId = actionEl.dataset.category;
+    if (!categoryId) return;
+    await setItemCategory(targetFreezer, index, categoryId);
+    return;
+  }
+
+  await updateItem(targetFreezer, action, index);
 });
 
 
@@ -736,8 +959,9 @@ function startAutoRefreshWatcher() {
   appUrlInput.value = initialUrl;
   setQrCode(initialUrl);
 
-  renderAll();
   nameInput.value = "";
+  renderAll();
+  renderProductCategoryOptions();
   hideSuggestions();
   closeAllCategoryMenus();
   setActiveFreezer(activeFreezer);

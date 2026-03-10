@@ -39,6 +39,7 @@
             <ul id="product-suggestions" class="suggestions-list" hidden></ul>
           </div>
           <input id="product-qty" type="number" min="1" step="1" value="1" required />
+          <select id="product-category" aria-label="Categorie du produit"></select>
           <button type="submit">Ajouter</button>
         </form>
       </section>
@@ -46,30 +47,8 @@
       <section class="card">
         <h2>Produits en stock</h2>
 
-        <div class="tabs" role="tablist" aria-label="Congelateurs">
-          <button class="tab-btn is-active" data-freezer="freezer1" role="tab" aria-selected="true" type="button">Cuisine</button>
-          <button class="tab-btn" data-freezer="freezer2" role="tab" aria-selected="false" type="button">Celier</button>
-        </div>
-
-        <article class="freezer-panel" data-freezer="freezer1">
-          <div class="list-header">
-            <h3>Cuisine</h3>
-            
-          </div>
-          <div id="category-tabs-freezer1" class="category-tabs" role="tablist" aria-label="Categories Cuisine"></div>
-          <ul id="product-list-freezer1" class="product-list"></ul>
-          <p id="empty-state-freezer1" class="empty-state">Aucun produit dans ce congelateur.</p>
-        </article>
-
-        <article class="freezer-panel" data-freezer="freezer2" hidden>
-          <div class="list-header">
-            <h3>Celier</h3>
-            
-          </div>
-          <div id="category-tabs-freezer2" class="category-tabs" role="tablist" aria-label="Categories Celier"></div>
-          <ul id="product-list-freezer2" class="product-list"></ul>
-          <p id="empty-state-freezer2" class="empty-state">Aucun produit dans ce congelateur.</p>
-        </article>
+        <div id="freezer-tabs" class="tabs" role="tablist" aria-label="Congelateurs"></div>
+        <div id="freezer-panels"></div>
       </section>
 
       <section class="card">
