@@ -206,6 +206,10 @@ button.danger {
   margin-bottom: 12px;
 }
 
+.tab-item {
+  position: relative;
+}
+
 .tab-btn {
   background: #fff;
   color: var(--text);
@@ -216,6 +220,48 @@ button.danger {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
+}
+
+.tab-item.is-removable .tab-btn {
+  padding-right: 28px;
+}
+
+.freezer-tab-actions {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: flex;
+  gap: 4px;
+}
+
+.rename-freezer-btn,
+.remove-freezer-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  padding: 0;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rename-freezer-btn {
+  border: 1px solid #2f7f58;
+  background: #2f7f58;
+  font-size: 0.7rem;
+}
+
+.rename-freezer-btn:hover {
+  background: #236243;
+}
+
+.remove-freezer-btn {
+  border: 1px solid #a92f2f;
+  background: #c54141;
+}
+
+.remove-freezer-btn:hover {
+  background: #a92f2f;
 }
 
 .add-freezer-btn {

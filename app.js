@@ -5,6 +5,7 @@ const ACTIVE_CATEGORY_KEY = "freezer-stock-active-category-v1";
 const FREEZER_LABELS_KEY = "freezer-stock-labels-v1";
 const VERSION_ENDPOINT = "version.json";
 const VERSION_CHECK_INTERVAL_MS = 60000;
+const FREEZER_LONG_PRESS_MS = 550;
 
 const DEFAULT_FREEZERS = [
   { id: "freezer1", label: "Cuisine" },
@@ -88,6 +89,9 @@ let activeCategoryByFreezer = loadActiveCategories();
 let stockDocRef = null;
 let storageMode = "local";
 let currentAppVersion = "";
+let freezerActionTarget = "";
+let freezerLongPressTimer = null;
+let freezerLongPressTriggered = false;
 
 function setSyncStatus(text) {
   if (!syncStatusEl) return;
@@ -145,6 +149,24 @@ function getDefaultFreezerLabel(freezerId) {
 
 function getFreezerIds() {
   return sortFreezerIds(Object.keys(freezerItems));
+}
+
+function isRemovableFreezer(freezerId) {
+  return !DEFAULT_FREEZERS.some((freezer) => freezer.id === freezerId);
+}
+
+function clearFreezerLongPressTimer() {
+  if (freezerLongPressTimer !== null) {
+    window.clearTimeout(freezerLongPressTimer);
+    freezerLongPressTimer = null;
+  }
+}
+
+function setFreezerActionTarget(freezerId = "") {
+  const nextValue = freezerId && freezerItems[freezerId] ? freezerId : "";
+  if (freezerActionTarget === nextValue) return;
+  freezerActionTarget = nextValue;
+  renderFreezerTabs();
 }
 
 function buildDefaultActiveCategories(ids) {
@@ -595,11 +617,13 @@ function renderFreezerTabs() {
   const freezerTabs = getFreezerIds()
     .map((freezerId) => {
       const isActive = freezerId === activeFreezer;
-      return `<button class="tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" role="tab" aria-selected="${isActive ? "true" : "false"}" type="button">${escapeHtml(getFreezerLabel(freezerId))}</button>`;
+      const showActions = freezerId === freezerActionTarget;
+      const showRemoveButton = showActions && isRemovableFreezer(freezerId);
+      return `<div class="tab-item ${showActions ? "is-removable" : ""}" data-tab-item="${freezerId}"><button class="tab-btn ${isActive ? "is-active" : ""}" data-freezer="${freezerId}" role="tab" aria-selected="${isActive ? "true" : "false"}" type="button">${escapeHtml(getFreezerLabel(freezerId))}</button>${showActions ? `<div class="freezer-tab-actions"><button class="rename-freezer-btn" data-action="rename-freezer" data-freezer="${freezerId}" type="button" aria-label="Renommer ${escapeHtml(getFreezerLabel(freezerId))}">R</button>${showRemoveButton ? `<button class="remove-freezer-btn" data-action="remove-freezer" data-freezer="${freezerId}" type="button" aria-label="Supprimer ${escapeHtml(getFreezerLabel(freezerId))}">-</button>` : ""}</div>` : ""}</div>`;
     })
     .join("");
 
-  freezerTabsEl.innerHTML = `${freezerTabs}<button class="add-freezer-btn" data-action="add-freezer" type="button" aria-label="Ajouter un congelateur">+ Congelateur</button>`;
+  freezerTabsEl.innerHTML = `${freezerTabs}<button class="add-freezer-btn" data-action="add-freezer" type="button" aria-label="Ajouter un congelateur">+</button>`;
 }
 
 function renderCategoryTabs(freezerId) {
@@ -671,6 +695,9 @@ function renderFreezer(freezerId) {
 
 function renderAll() {
   ensureFreezerData();
+  if (freezerActionTarget && !freezerItems[freezerActionTarget]) {
+    freezerActionTarget = "";
+  }
   renderFreezerTabs();
   freezerPanelsEl.innerHTML = "";
   getFreezerIds().forEach((freezerId) => renderFreezer(freezerId));
@@ -763,6 +790,40 @@ async function addFreezer() {
   setActiveFreezer(freezerId);
 }
 
+async function removeFreezer(freezerId) {
+  if (!freezerItems[freezerId] || !isRemovableFreezer(freezerId)) return;
+  const freezerIds = getFreezerIds();
+  if (freezerIds.length <= 1) return;
+
+  delete freezerItems[freezerId];
+  delete freezerLabels[freezerId];
+  delete activeCategoryByFreezer[freezerId];
+  if (activeFreezer === freezerId) {
+    activeFreezer = freezerIds.find((id) => id !== freezerId) || DEFAULT_FREEZERS[0].id;
+  }
+  freezerActionTarget = "";
+
+  await saveItems();
+  saveActiveCategories();
+  renderAll();
+}
+
+async function renameFreezer(freezerId) {
+  if (!freezerItems[freezerId]) return;
+  const currentLabel = getFreezerLabel(freezerId);
+  const nextLabelRaw = window.prompt("Nouveau nom du congelateur :", currentLabel);
+  if (nextLabelRaw === null) return;
+
+  const nextLabel = nextLabelRaw.trim().replace(/\s+/g, " ");
+  if (!nextLabel) return;
+  freezerLabels[freezerId] = nextLabel;
+  freezerActionTarget = "";
+
+  await saveItems();
+  saveActiveCategories();
+  renderAll();
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -841,17 +902,61 @@ freezerTabsEl.addEventListener("click", async (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
 
+  const removeBtn = target.closest("[data-action='remove-freezer']");
+  if (removeBtn instanceof HTMLElement) {
+    const freezerId = removeBtn.dataset.freezer;
+    if (!freezerId) return;
+    await removeFreezer(freezerId);
+    return;
+  }
+
+  const renameBtn = target.closest("[data-action='rename-freezer']");
+  if (renameBtn instanceof HTMLElement) {
+    const freezerId = renameBtn.dataset.freezer;
+    if (!freezerId) return;
+    await renameFreezer(freezerId);
+    return;
+  }
+
   const addBtn = target.closest("[data-action='add-freezer']");
   if (addBtn instanceof HTMLElement) {
+    setFreezerActionTarget("");
     await addFreezer();
     return;
   }
 
   const tabBtn = target.closest(".tab-btn");
   if (!(tabBtn instanceof HTMLElement)) return;
+  if (freezerLongPressTriggered) {
+    freezerLongPressTriggered = false;
+    return;
+  }
   const freezerId = tabBtn.dataset.freezer;
   if (!freezerId) return;
   setActiveFreezer(freezerId);
+  setFreezerActionTarget("");
+});
+
+freezerTabsEl.addEventListener("pointerdown", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  const tabBtn = target.closest(".tab-btn");
+  if (!(tabBtn instanceof HTMLElement)) return;
+  const freezerId = tabBtn.dataset.freezer;
+  if (!freezerId) return;
+
+  clearFreezerLongPressTimer();
+  freezerLongPressTriggered = false;
+  freezerLongPressTimer = window.setTimeout(() => {
+    freezerLongPressTriggered = true;
+    setFreezerActionTarget(freezerId);
+  }, FREEZER_LONG_PRESS_MS);
+});
+
+["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+  freezerTabsEl.addEventListener(eventName, () => {
+    clearFreezerLongPressTimer();
+  });
 });
 
 window.addEventListener("hashchange", () => {
@@ -902,6 +1007,9 @@ document.addEventListener("click", (event) => {
   if (!(target instanceof Element)) return;
   if (target.closest(".category-picker")) return;
   closeAllCategoryMenus();
+  if (!target.closest("#freezer-tabs")) {
+    setFreezerActionTarget("");
+  }
 });
 
 function normalizeUrl(value) {
