@@ -30,6 +30,7 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  min-width: 0;
 }
 
 .title-row {
@@ -37,6 +38,7 @@ body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .app-logo {
@@ -51,7 +53,8 @@ header h1 {
   margin: 0;
   line-height: 1.1;
   font-size: 1.5rem;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 header h1 span {
@@ -267,15 +270,16 @@ button.danger {
 }
 
 .tab-item.is-removable .tab-btn {
-  padding-left: 42px;
-  padding-right: 42px;
+  padding-left: 52px;
+  padding-right: 52px;
 }
 
 .freezer-tab-actions {
   position: absolute;
-  top: -12px;
-  left: -12px;
-  right: -12px;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  transform: translateY(-50%);
   display: flex;
   justify-content: space-between;
   pointer-events: none;
