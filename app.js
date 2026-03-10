@@ -108,6 +108,16 @@ function setVersionBadge(text, state = "") {
   }
 }
 
+function formatVersionBadge(version) {
+  const value = typeof version === "string" ? version.trim() : String(version || "").trim();
+  return `v ${value || "0"}`;
+}
+
+function triggerHapticFeedback() {
+  if (!("vibrate" in navigator) || typeof navigator.vibrate !== "function") return;
+  navigator.vibrate(18);
+}
+
 function hasFirebaseConfig() {
   return Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId);
 }
@@ -956,6 +966,7 @@ freezerTabsEl.addEventListener("pointerdown", (event) => {
   freezerLongPressTriggered = false;
   freezerLongPressTimer = window.setTimeout(() => {
     freezerLongPressTriggered = true;
+    triggerHapticFeedback();
     setFreezerActionTarget(freezerId);
   }, FREEZER_LONG_PRESS_MS);
 });
@@ -1069,30 +1080,24 @@ async function fetchLocalVersion() {
 }
 
 async function checkForUpdates() {
-  setVersionBadge(currentAppVersion ? `v${currentAppVersion} - verification...` : "Version - verification...", "is-checking");
   const remoteVersion = await fetchRemoteVersion();
   if (!remoteVersion) {
-    if (currentAppVersion) {
-      setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
-    } else {
-      setVersionBadge("Version inconnue", "is-unknown");
-    }
+    setVersionBadge(formatVersionBadge(currentAppVersion), currentAppVersion ? "is-ok" : "is-unknown");
     return;
   }
 
   if (!currentAppVersion) {
     currentAppVersion = remoteVersion;
-    setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
+    setVersionBadge(formatVersionBadge(currentAppVersion), "is-ok");
     return;
   }
 
   if (remoteVersion !== currentAppVersion) {
-    setVersionBadge(`MAJ dispo: v${remoteVersion}`, "is-checking");
     window.location.reload();
     return;
   }
 
-  setVersionBadge(`v${currentAppVersion} - a jour`, "is-ok");
+  setVersionBadge(formatVersionBadge(currentAppVersion), "is-ok");
 }
 
 function startAutoRefreshWatcher() {
@@ -1101,7 +1106,7 @@ function startAutoRefreshWatcher() {
 }
 
 (async function init() {
-  setVersionBadge("Version - verification...", "is-checking");
+  setVersionBadge(formatVersionBadge(currentAppVersion), "is-checking");
   const savedUrl = localStorage.getItem(URL_KEY);
   const initialUrl = savedUrl || window.location.href;
   appUrlInput.value = initialUrl;
@@ -1117,9 +1122,9 @@ function startAutoRefreshWatcher() {
   const localVersion = await fetchLocalVersion();
   if (localVersion) {
     currentAppVersion = localVersion;
-    setVersionBadge(`v${localVersion} - a jour`, "is-ok");
+    setVersionBadge(formatVersionBadge(localVersion), "is-ok");
   } else {
-    setVersionBadge("Version inconnue", "is-unknown");
+    setVersionBadge(formatVersionBadge("0"), "is-unknown");
   }
 
   await initCloudSync();
