@@ -550,14 +550,11 @@ function hideSuggestions() {
 
 function renderSuggestions(filterText = "") {
   const filter = normalizeText(filterText);
-  if (filter.length < 1) {
-    hideSuggestions();
-    return;
-  }
-
-  const options = collectSuggestions()
-    .filter((name) => normalizeText(name).includes(filter))
-    .slice(0, 10);
+  const allSuggestions = collectSuggestions();
+  const options =
+    filter.length < 1
+      ? allSuggestions.slice(0, 8)
+      : allSuggestions.filter((name) => normalizeText(name).includes(filter)).slice(0, 10);
 
   if (options.length === 0) {
     hideSuggestions();

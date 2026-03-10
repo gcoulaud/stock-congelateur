@@ -22,7 +22,7 @@
       <section class="card">
         <h2>Ajouter un produit</h2>
         <p class="hint">Le produit sera ajoute dans l'onglet actif.</p>
-        <form id="product-form" class="form-row product-form" autocomplete="off">
+        <form id="product-form" class="form-row product-form" autocomplete="on">
           <div class="autocomplete-box">
             <input
               id="product-name"
@@ -31,10 +31,10 @@
               placeholder="Ex: Haricots verts"
               required
               maxlength="80"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="none"
-              spellcheck="false"
+              autocomplete="on"
+              autocorrect="on"
+              autocapitalize="sentences"
+              spellcheck="true"
             />
             <ul id="product-suggestions" class="suggestions-list" hidden></ul>
           </div>
