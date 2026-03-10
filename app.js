@@ -435,7 +435,7 @@ async function initCloudSync() {
         const cloudLabels = extractCloudLabels(data, cloudIds);
 
         if (!hasAnyItems(cloudItems) && hasAnyItems(freezerItems)) {
-          setSyncStatus("Synchro cloud active (cloud vide ignore)");
+          setSyncStatus("  Synchro cloud active");
           return;
         }
 
