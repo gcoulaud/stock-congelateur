@@ -21,9 +21,9 @@ body {
 }
 
 .container {
-  max-width: 860px;
-  margin: 32px auto;
-  padding: 0 16px 24px;
+  max-width: 480px;
+  margin: 12px auto;
+  padding: 0 10px 16px;
 }
 
 .app-brand {
@@ -64,8 +64,8 @@ header p {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 16px;
-  margin-top: 16px;
+  padding: 14px;
+  margin-top: 12px;
   box-shadow: 0 8px 20px rgba(24, 43, 34, 0.06);
 }
 
@@ -108,6 +108,7 @@ h3 {
   gap: 8px;
   align-items: center;
   flex-wrap: nowrap;
+  width: 100%;
 }
 
 input,
@@ -124,21 +125,23 @@ input {
 }
 
 #product-qty {
-  flex: 0 0 68px;
-  min-width: 68px;
+  flex: 0 0 48px;
+  min-width: 48px;
   padding-left: 8px;
   padding-right: 8px;
 }
 
 #product-category {
-  flex: 0 1 150px;
-  min-width: 130px;
+  flex: 1 1 0;
+  min-width: 0;
   background: #fff;
   color: var(--text);
 }
 
 .product-form-actions button {
   flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 10px 12px;
 }
 
 button {
@@ -161,6 +164,7 @@ button.danger {
   position: relative;
   flex: 1 1 280px;
   min-width: 220px;
+  z-index: 30;
 }
 
 .autocomplete-box input {
@@ -172,7 +176,7 @@ button.danger {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 10;
+  z-index: 40;
   margin: 0;
   padding: 6px;
   list-style: none;
@@ -404,6 +408,24 @@ button.danger {
   .app-logo {
     width: 54px;
     height: 54px;
+  }
+
+  .product-form-actions {
+    gap: 6px;
+  }
+
+  #product-qty {
+    flex-basis: 50px;
+    min-width: 50px;
+  }
+
+  #product-category {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .product-form-actions button {
+    padding: 10px 12px;
   }
 
   .product-item {
