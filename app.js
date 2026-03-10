@@ -435,7 +435,7 @@ async function initCloudSync() {
         const cloudLabels = extractCloudLabels(data, cloudIds);
 
         if (!hasAnyItems(cloudItems) && hasAnyItems(freezerItems)) {
-          setSyncStatus("  Synchro cloud active");
+          setSyncStatus("  Synchro cloud active (cloud vide ignore)");
           return;
         }
 
@@ -448,7 +448,7 @@ async function initCloudSync() {
         renderAll();
 
         const total = Object.values(cloudItems).reduce((sum, items) => sum + (items?.length || 0), 0);
-        setSyncStatus(`Synchro cloud active (${total} produits)`);
+        setSyncStatus(`  Synchro cloud active (${total} produits)`);
       },
       () => {
         storageMode = "local";
