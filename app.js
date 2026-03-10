@@ -37,7 +37,7 @@ const EDITABLE_CATEGORIES = CATEGORIES.filter((category) => category.id !== "all
 
 const CATEGORY_RULES = {
   viande: ["boeuf", "steak", "porc", "jambon", "saucisse", "poulet", "viande", "lardon", "cote"],
-  poisson: ["poisson", "saumon", "truite", "maquereau", "crevette", "sole", "poulpe", "lieu"],
+  poisson: ["poisson", "saumon", "truite", "maquereau", "crevette", "sole", "poulpe", "lieu","bar"],
   legume: ["courgette", "haricot", "pois", "butternut", "legume"],
   plat: ["gratin", "quiche", "pizza", "soupe", "galette", "sauce"],
   produit_laitier: ["beurre", "emmental", "epoisse", "saint nectaire", "fromage"],

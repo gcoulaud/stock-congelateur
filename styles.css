@@ -91,6 +91,25 @@ h3 {
   flex-wrap: wrap;
 }
 
+.product-form {
+  flex-direction: column;
+  align-items: stretch;
+  
+}
+
+.product-form .autocomplete-box {
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.product-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
 input,
 select,
 button {
@@ -105,14 +124,21 @@ input {
 }
 
 #product-qty {
-  flex: 0 0 90px;
+  flex: 0 0 68px;
+  min-width: 68px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 #product-category {
-  flex: 1 1 180px;
-  min-width: 160px;
+  flex: 0 1 150px;
+  min-width: 130px;
   background: #fff;
   color: var(--text);
+}
+
+.product-form-actions button {
+  flex: 0 0 auto;
 }
 
 button {

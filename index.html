@@ -22,7 +22,7 @@
       <section class="card">
         <h2>Ajouter un produit</h2>
         <p class="hint">Le produit sera ajoute dans l'onglet actif.</p>
-        <form id="product-form" class="form-row" autocomplete="off">
+        <form id="product-form" class="form-row product-form" autocomplete="off">
           <div class="autocomplete-box">
             <input
               id="product-name"
@@ -38,9 +38,11 @@
             />
             <ul id="product-suggestions" class="suggestions-list" hidden></ul>
           </div>
-          <input id="product-qty" type="number" min="1" step="1" value="1" required />
-          <select id="product-category" aria-label="Categorie du produit"></select>
-          <button type="submit">Ajouter</button>
+          <div class="product-form-actions">
+            <input id="product-qty" type="number" min="1" step="1" value="1" required />
+            <select id="product-category" aria-label="Categorie du produit"></select>
+            <button type="submit">Ajouter</button>
+          </div>
         </form>
       </section>
 
