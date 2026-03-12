@@ -767,6 +767,8 @@ async function updateItem(freezerId, action, index) {
   const items = freezerItems[freezerId] || [];
   const item = items[index];
   if (!item) return;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
 
   if (action === "increase") {
     item.qty += 1;
@@ -789,6 +791,9 @@ async function updateItem(freezerId, action, index) {
 
   await saveItems();
   renderFreezer(freezerId);
+  window.requestAnimationFrame(() => {
+    window.scrollTo(scrollX, scrollY);
+  });
   closeAllCategoryMenus();
   renderSuggestions(nameInput.value);
 }
@@ -998,6 +1003,7 @@ freezerPanelsEl.addEventListener("click", async (event) => {
 
   const actionEl = target.closest("[data-action][data-freezer][data-index]");
   if (!(actionEl instanceof HTMLElement)) return;
+  event.preventDefault();
 
   const action = actionEl.dataset.action;
   const index = Number(actionEl.dataset.index);
