@@ -3,6 +3,8 @@ const URL_KEY = "freezer-stock-app-url-v1";
 const ACTIVE_FREEZER_KEY = "freezer-stock-active-tab-v1";
 const ACTIVE_CATEGORY_KEY = "freezer-stock-active-category-v1";
 const FREEZER_LABELS_KEY = "freezer-stock-labels-v1";
+const LAST_ACTION_KEY = "freezer-stock-last-action-v1";
+const DEBUG_TAG_KEY = "freezer-stock-debug-tag-v1";
 const VERSION_ENDPOINT = "version.json";
 const VERSION_CHECK_INTERVAL_MS = 60000;
 const FREEZER_LONG_PRESS_MS = 550;
@@ -81,6 +83,7 @@ const generateQrBtn = document.getElementById("generate-qr");
 const qrImage = document.getElementById("qr-image");
 const syncStatusEl = document.getElementById("sync-status");
 const versionBadgeEl = document.getElementById("app-version-badge");
+const lastProductLabelEl = document.getElementById("last-product-label");
 
 let freezerItems = loadItemsLocal();
 let freezerLabels = loadFreezerLabelsLocal();
@@ -93,10 +96,65 @@ let currentAppVersion = "";
 let freezerActionTarget = "";
 let freezerLongPressTimer = null;
 let freezerLongPressTriggered = false;
+let lastStockAction = loadLastStockAction();
+let showDebugTag = loadDebugTagVisibility();
 
 function setSyncStatus(text) {
   if (!syncStatusEl) return;
   syncStatusEl.textContent = text;
+}
+
+function loadLastStockAction() {
+  try {
+    const raw = localStorage.getItem(LAST_ACTION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if ((parsed.type !== "ajoute" && parsed.type !== "retire") || typeof parsed.name !== "string") return null;
+    const name = parsed.name.trim();
+    if (!name) return null;
+    return { type: parsed.type, name };
+  } catch {
+    return null;
+  }
+}
+
+function saveLastStockAction() {
+  if (!lastStockAction) {
+    localStorage.removeItem(LAST_ACTION_KEY);
+    return;
+  }
+  localStorage.setItem(LAST_ACTION_KEY, JSON.stringify(lastStockAction));
+}
+
+function loadDebugTagVisibility() {
+  const raw = localStorage.getItem(DEBUG_TAG_KEY);
+  if (raw === null) return true;
+  return raw === "1";
+}
+
+function saveDebugTagVisibility() {
+  localStorage.setItem(DEBUG_TAG_KEY, showDebugTag ? "1" : "0");
+}
+
+function renderLastStockAction() {
+  if (!(lastProductLabelEl instanceof HTMLElement)) return;
+  const baseText = !lastStockAction
+    ? "Dernier mouvement : aucun"
+    : `Dernier mouvement : ${lastStockAction.type === "ajoute" ? "Ajoute" : "Retire"} - ${lastStockAction.name}`;
+  lastProductLabelEl.textContent = showDebugTag ? `${baseText} | debug_poisson` : baseText;
+}
+
+function setLastStockAction(type, name) {
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+  if (!trimmedName) return;
+  if (type !== "ajoute" && type !== "retire") return;
+
+  lastStockAction = { type, name: trimmedName };
+  showDebugTag = false;
+  saveLastStockAction();
+  saveDebugTagVisibility();
+  renderLastStockAction();
 }
 
 function setVersionBadge(text, state = "") {
@@ -769,10 +827,13 @@ async function updateItem(freezerId, action, index) {
   if (!item) return;
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
+  let movementType = "";
+  const movementName = item.name;
 
   if (action === "increase") {
     item.qty += 1;
     item.active = true;
+    movementType = "ajoute";
   }
 
   if (action === "decrease") {
@@ -782,14 +843,19 @@ async function updateItem(freezerId, action, index) {
     } else {
       item.qty -= 1;
     }
+    movementType = "retire";
   }
 
   if (action === "remove") {
     item.qty = 0;
     item.active = false;
+    movementType = "retire";
   }
 
   await saveItems();
+  if (movementType) {
+    setLastStockAction(movementType, movementName);
+  }
   renderFreezer(freezerId);
   window.requestAnimationFrame(() => {
     window.scrollTo(scrollX, scrollY);
@@ -874,6 +940,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   await saveItems();
+  setLastStockAction("ajoute", name);
   renderAll();
   hideSuggestions();
   closeAllCategoryMenus();
@@ -1120,6 +1187,7 @@ function startAutoRefreshWatcher() {
 
   nameInput.value = "";
   renderAll();
+  renderLastStockAction();
   renderProductCategoryOptions();
   hideSuggestions();
   closeAllCategoryMenus();

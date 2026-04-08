@@ -135,6 +135,12 @@ h3 {
   font-size: 0.9rem;
 }
 
+.last-product-label {
+  margin: -2px 0 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .form-row {
   display: flex;
   gap: 8px;
