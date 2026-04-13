@@ -825,6 +825,7 @@ async function updateItem(freezerId, action, index) {
   const items = freezerItems[freezerId] || [];
   const item = items[index];
   if (!item) return;
+  const previousQty = Number(item.qty) || 0;
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
   let movementType = "";
@@ -856,10 +857,24 @@ async function updateItem(freezerId, action, index) {
   if (movementType) {
     setLastStockAction(movementType, movementName);
   }
-  renderFreezer(freezerId);
-  window.requestAnimationFrame(() => {
-    window.scrollTo(scrollX, scrollY);
-  });
+
+  const nextQty = Number(item.qty) || 0;
+  const needsFullRender = action === "remove" || previousQty <= 0 || nextQty <= 0;
+
+  if (needsFullRender) {
+    renderFreezer(freezerId);
+    window.requestAnimationFrame(() => {
+      window.scrollTo(scrollX, scrollY);
+    });
+  } else {
+    const qtyNode = freezerPanelsEl.querySelector(
+      `[data-action="increase"][data-freezer="${freezerId}"][data-index="${index}"]`
+    )?.parentElement?.querySelector(".qty");
+    if (qtyNode) {
+      qtyNode.textContent = String(item.qty);
+    }
+  }
+
   closeAllCategoryMenus();
   renderSuggestions(nameInput.value);
 }
